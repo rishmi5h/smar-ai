@@ -118,7 +118,9 @@ function RepoAnalyzer() {
         <div className="header-content">
           <div className="logo-section">
             <span className="logo-icon">🧠</span>
-            <h1>smar-ai</h1>
+            <h1 className="brand-title">
+              <span className="brand-word">smart</span><span className="brand-dash">-</span><span className="brand-accent">ai</span>
+            </h1>
           </div>
           <p className="header-subtitle">Your Code, Remembered</p>
           <p className="header-description">Understand any GitHub repository with AI-powered analysis</p>
