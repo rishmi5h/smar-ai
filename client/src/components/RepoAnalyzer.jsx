@@ -114,9 +114,14 @@ function RepoAnalyzer() {
   return (
     <div className="repo-analyzer">
       <header className="analyzer-header">
+        <div className="header-background"></div>
         <div className="header-content">
-          <h1>📊 smar-ai</h1>
-          <p>Your Code, Remembered. Understand any GitHub repository with AI-powered analysis.</p>
+          <div className="logo-section">
+            <span className="logo-icon">🧠</span>
+            <h1>smar-ai</h1>
+          </div>
+          <p className="header-subtitle">Your Code, Remembered</p>
+          <p className="header-description">Understand any GitHub repository with AI-powered analysis</p>
         </div>
       </header>
 
@@ -184,7 +189,7 @@ function RepoAnalyzer() {
       </main>
 
       <footer className="analyzer-footer">
-        <p>Powered by Claude AI. Built with React & Node.js</p>
+        <p>Powered by <a href="https://ollama.ai" target="_blank" rel="noopener noreferrer">Ollama</a>. Built with React & Node.js</p>
       </footer>
     </div>
   )
