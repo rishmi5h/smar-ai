@@ -1,0 +1,36 @@
+{
+  "name": "smar-ai",
+  "version": "1.0.0",
+  "description": "Your code, remembered. AI-powered GitHub repository analyzer.",
+  "private": true,
+  "scripts": {
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install && cd ..",
+    "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "build:server": "npm run build -w server",
+    "build:client": "npm run build -w client",
+    "build": "npm run build:server && npm run build:client"
+  },
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rishmi5h/smar-ai.git"
+  },
+  "keywords": [
+    "github",
+    "code-analysis",
+    "ai",
+    "claude",
+    "repository-analyzer"
+  ],
+  "author": "Rishabh Mishra",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rishmi5h/smar-ai/issues"
+  },
+  "homepage": "https://github.com/rishmi5h/smar-ai#readme"
+}

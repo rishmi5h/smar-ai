@@ -1,0 +1,62 @@
+name: Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: server/package-lock.json
+
+    - name: Install dependencies
+      run: cd server && npm ci
+
+    - name: Check syntax
+      run: cd server && npm run lint 2>/dev/null || echo "No linter configured"
+
+    - name: List files (verify package structure)
+      run: ls -la server/src/
+
+  test-frontend:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: client/package-lock.json
+
+    - name: Install dependencies
+      run: cd client && npm ci
+
+    - name: Build frontend
+      run: cd client && npm run build
+      env:
+        VITE_API_URL: http://localhost:5050/api
+
+    - name: Lint frontend
+      run: cd client && npm run lint 2>/dev/null || echo "No linter configured"

@@ -1,0 +1,53 @@
+# Netlify Configuration for smar-ai
+
+[build]
+  base = "client"
+  command = "npm run build"
+  publish = "dist"
+
+# Environment variables
+[build.environment]
+  NODE_VERSION = "22"
+  VITE_API_URL = "/api"
+
+# Redirects for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Cache headers for assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, immutable, max-age=31536000"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# API rewriting (optional, if using functions)
+[[functions]]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Environment per deploy context
+[context.production]
+  environment = { NODE_ENV = "production" }
+
+[context.deploy-preview]
+  environment = { NODE_ENV = "development" }
+
+[context.branch-deploy]
+  environment = { NODE_ENV = "development" }

@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # Ollama - Local LLM service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: smar-ai-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Backend API
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: smar-ai-backend
+    ports:
+      - "5050:5050"
+    environment:
+      PORT: 5050
+      NODE_ENV: production
+      OLLAMA_API_URL: http://ollama:11434/api
+      OLLAMA_MODEL: deepseek-r1:latest
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5050/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - smar-ai-network
+
+  # Frontend
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: smar-ai-client
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - smar-ai-network
+
+networks:
+  smar-ai-network:
+    driver: bridge
+
+volumes:
+  ollama_data:
+    driver: local
