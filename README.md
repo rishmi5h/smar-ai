@@ -3,35 +3,39 @@
 > Your Code, Remembered. Understand any GitHub repository with AI-powered analysis.
 
 ![License](https://img.shields.io/badge/License-ISC-blue.svg)
-![Node.js](https://img.shields.io/badge/Node.js-v16%2B-brightgreen)
+![Node.js](https://img.shields.io/badge/Node.js-v20%2B-brightgreen)
 ![React](https://img.shields.io/badge/React-19-blue)
+![Ollama](https://img.shields.io/badge/Ollama-LLM-orange)
 
 ## What is smar-ai?
 
-smar-ai is an intelligent code analyzer that uses Claude AI to understand and explain GitHub repositories. Instead of spending hours reading through code, get a comprehensive analysis in seconds.
+smar-ai is an intelligent code analyzer that uses **Ollama** (free, local LLM) to understand and explain GitHub repositories. Instead of spending hours reading through code, get a comprehensive analysis in seconds using local AI models.
 
 ### Key Features
 
-- 📊 **Smart Analysis** - AI-powered code understanding
+- 📊 **Smart Analysis** - AI-powered code understanding with local models
 - 🎯 **Multiple Formats** - Overview, detailed explanation, or learning guide
 - ⚡ **Real-time Streaming** - See results as they're generated
-- 🎨 **Beautiful UI** - Modern dark interface with syntax highlighting
+- 🎨 **Beautiful UI** - Modern, responsive interface with syntax highlighting
 - 📥 **Export Options** - Copy or download analysis as markdown
 - 🔗 **Easy to Use** - Just paste a GitHub URL
-- 🚀 **Cloud Ready** - Deploy to Railway + Netlify
+- 🚀 **Multiple Deployment Options** - Docker, Railway + Netlify, or VPS
+- 🆓 **Free to Use** - Powered by open-source Ollama models
 
 ## Quick Start
 
-### Online Demo
-Visit deployed version (update with your deployed URL):
-- Frontend: https://smar-ai.netlify.app
-- Backend: https://smar-ai-api.railway.app
+### Option 1: Docker (Fastest - 5 minutes)
 
-### Local Development
+```bash
+./scripts/deploy-docker.sh start
+open http://localhost:3000
+```
+
+### Option 2: Local Development
 
 **Prerequisites:**
-- Node.js 16+
-- Anthropic API Key ([get one free](https://console.anthropic.com))
+- Node.js 20+
+- Ollama installed ([download here](https://ollama.ai))
 
 **Setup:**
 
@@ -40,10 +44,14 @@ Visit deployed version (update with your deployed URL):
 git clone https://github.com/yourusername/smar-ai.git
 cd smar-ai
 
+# Start Ollama (in separate terminal)
+ollama pull deepseek-r1:latest
+ollama serve
+
 # Backend
 cd server
 cp .env.example .env
-# Edit .env with your ANTHROPIC_API_KEY
+# Edit .env with Ollama settings
 npm install
 npm run dev
 
@@ -60,7 +68,7 @@ Visit `http://localhost:3000`
 ```mermaid
 graph LR
     A[GitHub URL] -->|Fetch Code| B[GitHub API]
-    B -->|Code Samples| C[Claude AI]
+    B -->|Code Samples| C[Ollama LLM]
     C -->|Generate Analysis| D[Results]
     D -->|Display| E[Web UI]
 ```
@@ -87,33 +95,39 @@ graph LR
 
 ## Using AI in smar-ai
 
-### Claude API Integration
+### Ollama Integration
 
-We use **Claude Opus 4.5** for intelligent analysis:
+We use **Ollama** with the DeepSeek-R1 model for intelligent analysis:
 
 ```javascript
 // Example: How we generate analysis
-const analysis = await client.messages.create({
-  model: 'claude-opus-4-5-20251101',
-  max_tokens: 2000,
-  messages: [{
-    role: 'user',
-    content: `Analyze this repository:
+const response = await axios.post(`${OLLAMA_API_URL}/generate`, {
+  model: 'deepseek-r1:latest',
+  prompt: `Analyze this repository:
     Name: ${repo.name}
     Files: ${codeSnippets}
 
-    Provide: 1. Purpose 2. Tech Stack 3. Architecture`
-  }]
+    Provide: 1. Purpose 2. Tech Stack 3. Architecture`,
+  stream: false,
+  num_predict: 1500,
+  temperature: 0.7,
 })
 ```
 
-### Why Claude?
+### Why Ollama?
 
-- **Code Understanding** - Reads and comprehends complex codebases
-- **Clear Explanations** - Generates human-readable analysis
-- **Learning Guides** - Adapts content for different skill levels
+- **Free & Open Source** - No API costs, run locally
+- **Privacy First** - Your code stays on your machine
+- **Offline Capable** - Works without internet
+- **Customizable** - Use different models as needed
 - **Pattern Recognition** - Identifies design patterns and best practices
 - **Real-time Streaming** - Stream responses for instant feedback
+
+**Available Models:**
+- DeepSeek-R1 (recommended, detailed reasoning)
+- Mistral (fast, lightweight)
+- Llama 2 (balanced)
+- Neural-Chat (conversation optimized)
 
 ## API Reference
 
@@ -122,7 +136,7 @@ const analysis = await client.messages.create({
 **POST** `/api/analyze`
 
 ```bash
-curl -X POST http://localhost:5000/api/analyze \
+curl -X POST http://localhost:5050/api/analyze \
   -H "Content-Type: application/json" \
   -d '{
     "repoUrl": "https://github.com/facebook/react",
@@ -147,7 +161,7 @@ curl -X POST http://localhost:5000/api/analyze \
   },
   "analysis": "Comprehensive AI-generated analysis...",
   "filesAnalyzed": 15,
-  "timestamp": "2025-02-04T..."
+  "timestamp": "2025-02-05T..."
 }
 ```
 
@@ -165,21 +179,27 @@ Get metadata without full analysis.
 
 ## Deployment
 
-### Railway (Backend)
+### Option 1: Docker (Recommended)
 
+```bash
+./scripts/deploy-docker.sh start
+```
+
+[Full Docker guide →](./DEPLOYMENT.md#option-2-docker-deployment)
+
+### Option 2: Railway + Netlify (Cloud)
+
+**Backend (Railway):**
 1. Connect GitHub repository to Railway
 2. Set environment variables:
    ```
-   ANTHROPIC_API_KEY=sk-ant-...
+   OLLAMA_API_URL=http://your-ollama-server:11434/api
+   OLLAMA_MODEL=deepseek-r1:latest
    GITHUB_TOKEN=ghp_... (optional)
-   PORT=5000
+   PORT=5050
    ```
-3. Railway auto-detects Node.js and deploys
 
-[Railway Setup Guide →](./SETUP.md#railway-backend)
-
-### Netlify (Frontend)
-
+**Frontend (Netlify):**
 1. Connect GitHub repository to Netlify
 2. Set build settings:
    - Base directory: `client`
@@ -190,7 +210,14 @@ Get metadata without full analysis.
    VITE_API_URL=https://your-railway.railway.app/api
    ```
 
-[Netlify Setup Guide →](./SETUP.md#netlify-frontend)
+[Full Railway guide →](./RAILWAY_DEPLOYMENT.md)
+[Full Netlify guide →](./NETLIFY_DEPLOYMENT.md)
+
+### Option 3: Traditional VPS
+
+Supports AWS, DigitalOcean, Linode, etc.
+
+[Full VPS guide →](./DEPLOYMENT.md#option-3-traditional-vpscloud)
 
 ## Project Structure
 
@@ -201,10 +228,11 @@ smar-ai/
 │   │   ├── index.js              # Express server
 │   │   ├── services/
 │   │   │   ├── githubService.js  # GitHub API integration
-│   │   │   └── aiService.js      # Claude AI integration
+│   │   │   └── ollamaService.js  # Ollama AI integration
 │   │   └── routes/
 │   │       └── analyze.js        # API endpoints
 │   ├── .env.example
+│   ├── Dockerfile
 │   └── package.json
 ├── client/
 │   ├── src/
@@ -216,9 +244,12 @@ smar-ai/
 │   │   ├── App.jsx
 │   │   └── index.css
 │   ├── .env.example
+│   ├── Dockerfile
+│   ├── nginx.conf
 │   ├── netlify.toml
 │   └── vite.config.js
-├── SETUP.md
+├── docker-compose.yml
+├── DEPLOYMENT.md
 └── README.md
 ```
 
@@ -226,14 +257,15 @@ smar-ai/
 
 **Server (`server/.env`):**
 ```
-PORT=5000
-ANTHROPIC_API_KEY=sk-ant-xxx
-GITHUB_TOKEN=ghp_xxx  # Optional
+PORT=5050
+OLLAMA_API_URL=http://localhost:11434/api
+OLLAMA_MODEL=deepseek-r1:latest
+GITHUB_TOKEN=ghp_xxx  # Optional, for higher GitHub API limits
 ```
 
 **Client (`client/.env`):**
 ```
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=http://localhost:5050/api
 ```
 
 ## Features
@@ -242,9 +274,12 @@ VITE_API_URL=http://localhost:5000/api
 - GitHub repository analysis
 - Multiple analysis types
 - Real-time streaming
-- Dark theme UI
+- Modern responsive UI
 - Copy/download results
 - Syntax highlighting
+- Docker support
+- Multiple deployment options
+- Ollama integration
 
 ### Planned 🚀
 - Repository comparison
@@ -262,17 +297,23 @@ VITE_API_URL=http://localhost:5000/api
 - React 19
 - Vite
 - Axios
-- CSS3
+- Modern CSS3
 
 **Backend:**
-- Node.js
+- Node.js 20
 - Express
-- Anthropic SDK
+- Ollama SDK
 - GitHub API
 
 **Deployment:**
+- Docker & Docker Compose
 - Railway
 - Netlify
+- Nginx
+
+**AI:**
+- Ollama (Local LLM)
+- DeepSeek-R1
 
 ## Contributing
 
@@ -286,16 +327,19 @@ Contributions welcome! Please:
 
 ## Troubleshooting
 
+**Q: "Cannot reach Ollama API"**
+A: Make sure Ollama is running: `ollama serve`
+
 **Q: "Invalid GitHub URL"**
 A: Use format `https://github.com/owner/repo` or `owner/repo`
 
-**Q: "API key not found"**
-A: Create `server/.env` and add `ANTHROPIC_API_KEY`
+**Q: Docker won't start**
+A: Make sure Docker is running and ports 3000, 5050, 11434 are available
 
 **Q: Rate limit errors**
 A: Add `GITHUB_TOKEN` for higher GitHub API limits
 
-See [SETUP.md](./SETUP.md#troubleshooting) for more help.
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for more help.
 
 ## Roadmap
 
@@ -308,7 +352,7 @@ See [SETUP.md](./SETUP.md#troubleshooting) for more help.
 - [ ] Browser extension
 - [ ] CLI tool
 - [ ] Advanced filtering
-- [ ] API rate limiting tiers
+- [ ] Multiple language support
 
 ## License
 
@@ -316,17 +360,20 @@ ISC License - See LICENSE file for details
 
 ## Support
 
-- 📖 [Setup Guide](./SETUP.md)
+- 📖 [Full Documentation](./INDEX.md)
+- 🚀 [Deployment Guide](./DEPLOYMENT_QUICK_START.md)
 - 🐛 [Report Issues](https://github.com/yourusername/smar-ai/issues)
 - 💬 [Discussions](https://github.com/yourusername/smar-ai/discussions)
-- 📧 Contact: your-email@example.com
 
 ## Acknowledgments
 
-- Built with [Claude AI](https://claude.ai) from Anthropic
-- Powered by [React](https://react.dev) and [Vite](https://vite.dev)
-- Deployed on [Railway](https://railway.app) and [Netlify](https://netlify.com)
+- Powered by [Ollama](https://ollama.ai) for local LLM inference
+- Built with [React](https://react.dev) and [Vite](https://vite.dev)
+- GitHub integration via [GitHub API](https://docs.github.com/rest)
+- Deployed on [Railway](https://railway.app), [Netlify](https://netlify.com), and [Docker](https://docker.com)
 
 ---
 
 **Made with ❤️ for code understanding**
+
+[Get Started Now →](./DEPLOYMENT_QUICK_START.md)
