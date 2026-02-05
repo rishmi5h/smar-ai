@@ -2,6 +2,8 @@
 
 This guide covers deploying **smar-ai** to production environments. You have several deployment options depending on where you want to host the backend and frontend.
 
+**Live app:** https://smarai.rishmi5h.com
+
 ## Table of Contents
 1. [Deployment Architecture](#deployment-architecture)
 2. [Option 1: Railway + Netlify (Recommended)](#option-1-railway--netlify-recommended)
@@ -587,4 +589,3 @@ For issues with specific platforms:
 - **Netlify**: https://docs.netlify.com
 - **Docker**: https://docs.docker.com
 - **Ollama**: https://github.com/ollama/ollama
-

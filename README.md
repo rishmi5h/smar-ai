@@ -7,6 +7,8 @@
 ![React](https://img.shields.io/badge/React-19-blue)
 ![Ollama](https://img.shields.io/badge/Ollama-LLM-orange)
 
+**Live app:** https://smarai.rishmi5h.com
+
 ## What is smar-ai?
 
 smar-ai is an intelligent code analyzer that uses **Ollama** (free, local LLM) to understand and explain GitHub repositories. Instead of spending hours reading through code, get a comprehensive analysis in seconds using local AI models.

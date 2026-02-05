@@ -2,6 +2,8 @@
 
 Choose your deployment option and follow the guide.
 
+**Live app:** https://smarai.rishmi5h.com
+
 ## 🚀 Option 1: Docker (Recommended for Local/Self-Hosted)
 
 **Best for:** Running on your own server, VPS, or locally

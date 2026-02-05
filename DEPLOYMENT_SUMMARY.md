@@ -1,5 +1,7 @@
 # Deployment Configuration Summary
 
+**Live app:** https://smarai.rishmi5h.com
+
 ## ✅ What's Been Added
 
 ### 1. **Deployment Documentation**

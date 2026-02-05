@@ -2,6 +2,8 @@
 
 Complete step-by-step guide to deploy smar-ai frontend on Netlify.
 
+**Live app:** https://smarai.rishmi5h.com
+
 ## Prerequisites
 
 - GitHub account with the smar-ai repository
