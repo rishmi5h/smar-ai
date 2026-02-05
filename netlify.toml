@@ -2,7 +2,7 @@
 
 [build]
   base = "."
-  command = "npm install && npm run build:client"
+  command = "npm install && cd client && npm install && npm run build"
   publish = "client/dist"
 
 # Environment variables
