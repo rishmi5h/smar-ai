@@ -113,33 +113,33 @@ function RepoAnalyzer() {
 
   return (
     <div className="repo-analyzer">
-      <header className="analyzer-header">
-        <div className="header-background"></div>
-        <div className="header-content">
+      <header className="analyzer-hero">
+        <div className="hero-content">
           <div className="logo-section">
-            <span className="logo-icon">🧠</span>
             <h1 className="brand-title">
-              <span className="brand-word">smart</span><span className="brand-dash">-</span><span className="brand-accent">ai</span>
+              <span className="brand-word">smar</span> <span className="brand-accent">ai</span>
             </h1>
           </div>
-          <p className="header-subtitle">Your Code, Remembered</p>
-          <p className="header-description">Understand any GitHub repository with AI-powered analysis</p>
+          <p className="header-description">Understand your code, fast.</p>
+          <div className="hero-search">
+            <SearchBar
+              repoUrl={repoUrl}
+              setRepoUrl={setRepoUrl}
+              analysisType={analysisType}
+              setAnalysisType={setAnalysisType}
+              useStream={useStream}
+              setUseStream={setUseStream}
+              onAnalyze={handleAnalyze}
+              onClear={handleClear}
+              onExampleSelect={setRepoUrl}
+              loading={loading}
+            />
+          </div>
         </div>
       </header>
 
       <main className="analyzer-main">
         <div className="container">
-          <SearchBar
-            repoUrl={repoUrl}
-            setRepoUrl={setRepoUrl}
-            analysisType={analysisType}
-            setAnalysisType={setAnalysisType}
-            useStream={useStream}
-            setUseStream={setUseStream}
-            onAnalyze={handleAnalyze}
-            onClear={handleClear}
-            loading={loading}
-          />
 
           {error && (
             <div className="error-message">
@@ -157,36 +157,7 @@ function RepoAnalyzer() {
             />
           )}
 
-          {!results && !loading && !error && (
-            <div className="empty-state">
-              <div className="empty-icon">🔍</div>
-              <h2>Ready to Analyze</h2>
-              <p>Enter a GitHub repository URL above to get started</p>
-              <div className="example-repos">
-                <p className="example-label">Try these examples:</p>
-                <div className="repo-examples">
-                  <button
-                    className="example-btn"
-                    onClick={() => setRepoUrl('https://github.com/tailwindlabs/tailwindcss')}
-                  >
-                    tailwindlabs/tailwindcss
-                  </button>
-                  <button
-                    className="example-btn"
-                    onClick={() => setRepoUrl('https://github.com/vercel/next.js')}
-                  >
-                    vercel/next.js
-                  </button>
-                  <button
-                    className="example-btn"
-                    onClick={() => setRepoUrl('https://github.com/facebook/react')}
-                  >
-                    facebook/react
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          {!results && !loading && !error && null}
         </div>
       </main>
 

@@ -4,6 +4,7 @@
   border: 1px solid var(--color-border);
   overflow: hidden;
   animation: slideUp 0.4s ease-out;
+  box-shadow: 0 12px 30px rgba(3, 7, 18, 0.45);
 }
 
 .results-header {
@@ -64,8 +65,8 @@
 
 .topic-tag {
   display: inline-block;
-  background-color: var(--color-primary);
-  color: white;
+  background-color: var(--color-surface-light);
+  color: var(--color-text);
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.85rem;
@@ -80,8 +81,9 @@
 }
 
 .analysis-type-badge {
-  background-color: var(--color-primary);
-  color: white;
+  background-color: var(--color-surface-light);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   padding: 0.5rem 1rem;
   border-radius: 20px;
   font-weight: 500;
@@ -91,7 +93,7 @@
 
 .action-btn {
   padding: 0.5rem 1rem;
-  background-color: var(--color-surface-light);
+  background-color: transparent;
   border: 1px solid var(--color-border);
   color: var(--color-text);
   border-radius: 6px;
@@ -102,9 +104,9 @@
 }
 
 .action-btn:hover {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-  color: white;
+  background-color: var(--color-surface-light);
+  border-color: var(--color-border);
+  color: var(--color-text);
 }
 
 .analysis-content {
@@ -145,7 +147,7 @@
 .results-footer {
   padding: 1rem 2rem;
   border-top: 1px solid var(--color-border);
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: var(--color-surface);
 }
 
 .timestamp {
@@ -171,17 +173,17 @@
 }
 
 .analysis-content::-webkit-scrollbar-track {
-  background: var(--color-background);
+  background: var(--color-surface-light);
   border-radius: 4px;
 }
 
 .analysis-content::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: #2a3850;
   border-radius: 4px;
 }
 
 .analysis-content::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary);
+  background: #3b4b66;
 }
 
 @media (max-width: 768px) {

@@ -1,20 +1,20 @@
 :root {
   /* Colors */
-  --color-primary: #6366f1;
-  --color-primary-dark: #4f46e5;
-  --color-primary-light: #818cf8;
+  --color-primary: #4f7cff;
+  --color-primary-dark: #3b6af5;
+  --color-primary-light: #7aa2ff;
   --color-secondary: #10b981;
   --color-accent: #f59e0b;
   --color-error: #ef4444;
 
   /* Dark theme */
-  --color-background: #0f172a;
-  --color-surface: #1e293b;
-  --color-surface-light: #334155;
-  --color-border: #475569;
-  --color-text: #f1f5f9;
-  --color-text-muted: #cbd5e1;
-  --color-text-dim: #94a3b8;
+  --color-background: #0b1020;
+  --color-surface: #121826;
+  --color-surface-light: #1b2433;
+  --color-border: #243147;
+  --color-text: #e5e7eb;
+  --color-text-muted: #9aa4b2;
+  --color-text-dim: #7b8798;
 
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -53,15 +53,13 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'IBM Plex Sans', 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--color-background);
   color: var(--color-text);
   line-height: 1.6;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   margin: 0;
   min-height: 100vh;
 }
@@ -73,9 +71,10 @@ body {
 
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 700;
+  font-family: 'Space Grotesk', 'IBM Plex Sans', system-ui, sans-serif;
+  font-weight: 600;
   margin-bottom: 0.5em;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.3px;
 }
 
 h1 { font-size: 3rem; line-height: 1.1; }

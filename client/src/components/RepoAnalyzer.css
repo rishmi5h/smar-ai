@@ -3,106 +3,63 @@
   flex-direction: column;
   min-height: 100vh;
   background-color: var(--color-background);
-  background-image:
-    radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+  background-image: none;
 }
 
-.analyzer-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 5rem 2rem;
-  color: white;
+.analyzer-hero {
+  min-height: 68vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1.5rem 2rem;
+  background: radial-gradient(circle at top, rgba(79, 124, 255, 0.08), transparent 55%);
+}
+
+.hero-content {
+  width: 100%;
+  max-width: 760px;
   text-align: center;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
-}
-
-.header-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image:
-    radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 40% 20%, rgba(99, 102, 241, 0.3) 0%, transparent 40%);
-  pointer-events: none;
-  opacity: 0.8;
-}
-
-.header-content {
-  position: relative;
-  z-index: 1;
-  max-width: 900px;
-  margin: 0 auto;
 }
 
 .logo-section {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.logo-icon {
-  font-size: 4rem;
-  display: inline-block;
-  animation: bounce 2s ease-in-out infinite;
+  margin-bottom: 0.75rem;
 }
 
 .brand-title {
-  font-size: 4.5rem;
+  font-size: 3rem;
   margin: 0;
-  font-weight: 900;
-  letter-spacing: -1px;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  text-shadow: none;
   display: inline-block;
 }
 
 .brand-word {
-  background: linear-gradient(120deg, #ffffff 0%, #f0f0f0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 900;
+  color: var(--color-text);
+  font-weight: 600;
 }
 
-.brand-dash {
-  color: rgba(255, 255, 255, 0.6);
-  margin: 0 0.1em;
-  font-weight: 300;
-}
 
 .brand-accent {
-  background: linear-gradient(120deg, #fbbf24 0%, #f59e0b 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 900;
-  font-style: italic;
-}
-
-.header-subtitle {
-  font-size: 1.5rem;
-  margin: 1.5rem 0 0.75rem 0;
-  font-weight: 300;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  opacity: 0.95;
-  font-style: italic;
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 .header-description {
-  font-size: 1.2rem;
-  opacity: 0.9;
+  font-size: 1rem;
+  opacity: 0.75;
   max-width: 700px;
-  margin: 0 auto;
-  font-weight: 300;
-  letter-spacing: 0.5px;
+  margin: 0.6rem auto 0;
+  font-weight: 400;
+  letter-spacing: 0.2px;
   line-height: 1.6;
+}
+
+.hero-search {
+  margin-top: 2rem;
 }
 
 .analyzer-main {
@@ -116,9 +73,9 @@
 }
 
 .error-message {
-  background-color: rgba(239, 68, 68, 0.1);
-  border: 2px solid var(--color-error);
-  color: #fca5a5;
+  background-color: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fecaca;
   padding: 1.25rem 1.5rem;
   border-radius: var(--radius-lg);
   margin-bottom: 2rem;
@@ -126,7 +83,7 @@
   align-items: center;
   gap: 1rem;
   animation: slideDown 0.3s ease-out;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+  box-shadow: none;
 }
 
 .error-icon {
@@ -134,89 +91,9 @@
   flex-shrink: 0;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 4rem 2rem;
-  background: linear-gradient(135deg, var(--color-surface) 0%, rgba(99, 102, 241, 0.05) 100%);
-  border-radius: var(--radius-xl);
-  border: 2px solid var(--color-border);
-  margin-top: 2rem;
-  transition: all var(--transition-base);
-}
-
-.empty-state:hover {
-  border-color: var(--color-primary);
-  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.15);
-}
-
-.empty-icon {
-  font-size: 4.5rem;
-  display: block;
-  margin-bottom: 1.5rem;
-  animation: slideUp 0.5s ease-out;
-}
-
-.empty-state h2 {
-  font-size: 2rem;
-  margin-bottom: 0.75rem;
-  color: var(--color-text);
-  font-weight: 700;
-}
-
-.empty-state p {
-  color: var(--color-text-muted);
-  margin-bottom: 2rem;
-  font-size: 1.1rem;
-  line-height: 1.6;
-}
-
-.example-repos {
-  margin-top: 2.5rem;
-}
-
-.example-label {
-  color: var(--color-text-muted);
-  font-size: 0.95rem;
-  margin-bottom: 1.25rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.repo-examples {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: center;
-}
-
-.example-btn {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: white;
-  padding: 0.875rem 2rem;
-  border: none;
-  border-radius: var(--radius-lg);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-base);
-  font-size: 0.95rem;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-  text-transform: capitalize;
-  letter-spacing: 0.5px;
-}
-
-.example-btn:hover {
-  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.5);
-}
-
-.example-btn:active {
-  transform: translateY(-1px);
-}
 
 .analyzer-footer {
-  background: linear-gradient(180deg, transparent 0%, rgba(30, 41, 59, 0.5) 100%);
+  background: var(--color-surface);
   border-top: 1px solid var(--color-border);
   padding: 2.5rem 1rem;
   text-align: center;
@@ -252,66 +129,25 @@
   }
 }
 
-@keyframes bounce {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
 @media (max-width: 768px) {
-  .analyzer-header {
-    padding: 3rem 1rem;
+  .analyzer-hero {
+    min-height: 60vh;
+    padding: 3rem 1rem 2rem;
   }
 
-  .logo-section {
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-
-  .logo-icon {
-    font-size: 3rem;
-  }
-
-  .header-content h1 {
-    font-size: 2.8rem;
-    letter-spacing: -1px;
-  }
-
-  .header-subtitle {
-    font-size: 1.1rem;
-    margin: 1rem 0 0.5rem 0;
+  .brand-title {
+    font-size: 2.4rem;
   }
 
   .header-description {
-    font-size: 1rem;
+    font-size: 0.95rem;
+  }
+
+  .hero-search {
+    margin-top: 1.5rem;
   }
 
   .analyzer-main {
     padding: 1.5rem;
-  }
-
-  .repo-examples {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .example-btn {
-    width: 100%;
-    padding: 1rem;
-  }
-
-  .empty-state {
-    padding: 2.5rem 1.5rem;
-  }
-
-  .empty-state h2 {
-    font-size: 1.5rem;
-  }
-
-  .empty-icon {
-    font-size: 3rem;
   }
 }
