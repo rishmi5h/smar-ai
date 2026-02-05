@@ -4,9 +4,7 @@
   base = "."
   command = "npm install --include=dev && npm run build:client"
   publish = "client/dist"
-
-[build.ignore]
-  command = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- client"
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- client"
 
 # Environment variables
 [build.environment]
