@@ -24,16 +24,31 @@
   flex: 1;
   padding: 0.65rem 0.25rem;
   background-color: transparent;
-  border: none;
+  border: none !important;
+  box-shadow: none !important;
   border-radius: 999px;
   color: var(--color-text);
   font-size: 1.02rem;
   transition: color 0.2s;
+  outline: none;
 }
 
 .search-input:focus {
-  outline: none;
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
   color: var(--color-text);
+}
+
+.search-input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.input-group:focus-within {
+  border-color: rgba(79, 124, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.2);
 }
 
 .search-input::placeholder {
