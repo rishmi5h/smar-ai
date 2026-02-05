@@ -13,7 +13,7 @@ services:
       PORT: 5050
       NODE_ENV: production
       GROQ_API_KEY: ${GROQ_API_KEY}
-      GROQ_MODEL: ${GROQ_MODEL:-deepseek-r1-distill-llama-70b}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5050/api/health || exit 1"]

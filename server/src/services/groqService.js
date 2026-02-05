@@ -11,7 +11,7 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-const GROQ_MODEL = process.env.GROQ_MODEL || "deepseek-r1-distill-llama-70b";
+const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 
 // Helper function to call Groq API
 const callGroq = async (prompt, maxTokens = 2000) => {
