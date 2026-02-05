@@ -191,7 +191,10 @@ function RepoAnalyzer() {
       </main>
 
       <footer className="analyzer-footer">
-        <p>Powered by <a href="https://ollama.ai" target="_blank" rel="noopener noreferrer">Ollama</a>. Built with React & Node.js</p>
+        <p>
+          Powered by <a href="https://ollama.ai" target="_blank" rel="noopener noreferrer">Ollama</a>. Built with React & Node.js.{" "}
+          <a href="https://github.com/rishmi5h" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </p>
       </footer>
     </div>
   )
