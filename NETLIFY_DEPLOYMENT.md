@@ -185,6 +185,16 @@ Look for errors like:
 
 Netlify automatically deploys when you push to main:
 
+### Avoid Rebuilding When Backend Changes
+If you deploy the backend separately (Railway) and want Netlify to rebuild only when the UI changes, add a build ignore rule in `netlify.toml`:
+
+```toml
+[build.ignore]
+  command = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- client"
+```
+
+This tells Netlify to skip builds unless files under `client/` changed.
+
 ```bash
 # Make a change to frontend
 echo "// Updated" >> client/src/App.jsx

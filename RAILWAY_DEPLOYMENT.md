@@ -190,6 +190,12 @@ But remember to use your Railway backend URL when configuring the frontend.
 
 Railway automatically deploys when you push to main branch:
 
+### Avoid Rebuilding When Frontend Changes
+If you only want Railway to deploy when backend files change:
+
+1. In Railway, set **Root Directory** to `server/` for the service.
+2. This limits deployments to changes under `server/` only.
+
 ```bash
 # Make a change
 echo "// Updated" >> server/src/index.js
