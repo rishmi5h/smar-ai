@@ -120,7 +120,7 @@ function RepoAnalyzer() {
               <span className="brand-word">smar</span> <span className="brand-accent">ai</span>
             </h1>
           </div>
-          <p className="header-description">Understand your code, fast.</p>
+          <p className="header-description">Understand any code, fast.</p>
           <div className="hero-search">
             <SearchBar
               repoUrl={repoUrl}
