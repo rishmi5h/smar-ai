@@ -224,9 +224,21 @@
   font-size: 0.9rem;
 }
 
+.analyzer-footer p {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
 .analyzer-footer a {
   color: var(--color-primary);
-  margin: 0 0.5rem;
+  margin: 0;
+}
+
+.analyzer-footer .footer-sep {
+  color: var(--color-text-dim);
 }
 
 @keyframes slideDown {
