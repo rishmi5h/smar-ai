@@ -1,6 +1,6 @@
 # smar-ai 🧠
 
-> Your Code, Remembered. Understand any GitHub repository with AI-powered analysis.
+> Understand any code, fast.
 
 ![License](https://img.shields.io/badge/License-ISC-blue.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-v20%2B-brightgreen)
