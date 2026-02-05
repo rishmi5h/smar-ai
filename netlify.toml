@@ -8,7 +8,7 @@
 # Environment variables
 [build.environment]
   NODE_VERSION = "22"
-  VITE_API_URL = "/api"
+  VITE_API_URL = "https://smar-ai-serivces.rishmi5h.com/api"
   NPM_FLAGS = "--include=dev"
 
 # Redirects for SPA routing
@@ -16,6 +16,12 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://smar-ai-serivces.rishmi5h.com/api/:splat"
+  status = 200
+  force = true
 
 # Cache headers for assets
 [[headers]]
