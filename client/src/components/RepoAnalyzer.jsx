@@ -15,6 +15,13 @@ function RepoAnalyzer() {
   const [results, setResults] = useState(null)
   const [useStream, setUseStream] = useState(false)
 
+  const normalizeRepoUrl = (input) => {
+    const trimmed = input.trim()
+    if (!trimmed) return ''
+    if (/^https?:\/\//i.test(trimmed)) return trimmed
+    return `https://github.com/${trimmed.replace(/^github\.com\//i, '')}`
+  }
+
   const handleAnalyze = async (e) => {
     e.preventDefault()
 
@@ -23,15 +30,18 @@ function RepoAnalyzer() {
       return
     }
 
+    const normalizedRepoUrl = normalizeRepoUrl(repoUrl)
+    setRepoUrl(normalizedRepoUrl)
+
     setLoading(true)
     setError('')
     setResults(null)
 
     try {
       if (useStream) {
-        await analyzeWithStream()
+        await analyzeWithStream(normalizedRepoUrl)
       } else {
-        await analyzeWithRegularAPI()
+        await analyzeWithRegularAPI(normalizedRepoUrl)
       }
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Failed to analyze repository')
@@ -41,22 +51,22 @@ function RepoAnalyzer() {
     }
   }
 
-  const analyzeWithRegularAPI = async () => {
+  const analyzeWithRegularAPI = async (normalizedRepoUrl) => {
     const response = await axios.post(`${API_BASE_URL}/analyze`, {
-      repoUrl,
+      repoUrl: normalizedRepoUrl,
       analysisType
     })
 
     setResults(response.data)
   }
 
-  const analyzeWithStream = async () => {
+  const analyzeWithStream = async (normalizedRepoUrl) => {
     const response = await fetch(`${API_BASE_URL}/analyze-stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ repoUrl, analysisType })
+      body: JSON.stringify({ repoUrl: normalizedRepoUrl, analysisType })
     })
 
     if (!response.ok) {

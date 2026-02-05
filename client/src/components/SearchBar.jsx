@@ -26,7 +26,7 @@ function SearchBar({
         <div className="input-group">
           <input
             type="text"
-            placeholder="Enter a GitHub repo (e.g., owner/repo)"
+            placeholder="Enter a GitHub repo or link (e.g., owner/repo)"
             value={repoUrl}
             onChange={(e) => setRepoUrl(e.target.value)}
             disabled={loading}
