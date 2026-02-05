@@ -1,9 +1,9 @@
 # Netlify Configuration for smar-ai
 
 [build]
-  base = "client"
-  command = "npm run build"
-  publish = "dist"
+  base = "."
+  command = "npm install && npm run build:client"
+  publish = "client/dist"
 
 # Environment variables
 [build.environment]
