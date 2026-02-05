@@ -10,7 +10,7 @@ import {
   generateCodeExplanation,
   generateLearningGuide,
   streamCodeAnalysis
-} from '../services/ollamaService.js';
+} from '../services/groqService.js';
 
 export const analyzeRepoRoute = express.Router();
 

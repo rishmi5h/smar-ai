@@ -10,15 +10,20 @@
     "build": "echo 'No build step required for server'"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "axios": "^1.6.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "axios": "^1.6.2"
+    "express": "^4.18.2",
+    "groq-sdk": "^0.37.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
   },
-  "keywords": ["github", "code-analysis", "ai"],
+  "keywords": [
+    "github",
+    "code-analysis",
+    "ai"
+  ],
   "author": "",
   "license": "ISC"
 }
