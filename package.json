@@ -32,5 +32,8 @@
   "bugs": {
     "url": "https://github.com/rishmi5h/smar-ai/issues"
   },
-  "homepage": "https://github.com/rishmi5h/smar-ai#readme"
+  "homepage": "https://github.com/rishmi5h/smar-ai#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }
