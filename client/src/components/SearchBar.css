@@ -265,6 +265,30 @@
   box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.2);
 }
 
+/* URL type badges */
+.url-type-badge {
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.url-badge-pr {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.url-badge-issue {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
 @media (max-width: 768px) {
   .search-bar {
     padding: 1rem 0 1.25rem;

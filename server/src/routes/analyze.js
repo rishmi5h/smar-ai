@@ -1,13 +1,18 @@
 import express from 'express';
 import {
   parseGithubUrl,
+  parseGithubPrOrIssueUrl,
   getRepoMetadata,
   getRelevantCodeFiles,
   getCodeSnippets,
   getRecentCommits,
   getCompare,
   getRepoTree,
-  getCodeSnippetsAtRef
+  getCodeSnippetsAtRef,
+  getPRDetails,
+  getIssueDetails,
+  getArchitectureCodeFiles,
+  getArchitectureSnippets
 } from '../services/githubService.js';
 import {
   generateCodeOverview,
@@ -15,8 +20,15 @@ import {
   generateLearningGuide,
   streamCodeAnalysis,
   streamChatResponse,
-  streamEvolutionAnalysis
+  streamEvolutionAnalysis,
+  streamArchitectureAnalysis,
+  streamPRAnalysis,
+  streamIssueAnalysis
 } from '../services/groqService.js';
+import {
+  buildDependencyGraph,
+  generateMermaidDSL
+} from '../services/importParser.js';
 
 export const analyzeRepoRoute = express.Router();
 
@@ -309,5 +321,178 @@ analyzeRepoRoute.get('/repo-info', async (req, res) => {
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// Architecture diagram endpoint
+analyzeRepoRoute.post('/architecture', async (req, res) => {
+  try {
+    const { repoUrl } = req.body;
+
+    if (!repoUrl) {
+      return res.status(400).json({ error: 'repoUrl is required' });
+    }
+
+    const { owner, repo } = parseGithubUrl(repoUrl);
+    const metadata = await getRepoMetadata(owner, repo);
+
+    // Use architecture-specific file fetching (source code only, more files, parallel)
+    const { files: archFiles, branch } = await getArchitectureCodeFiles(owner, repo);
+    const codeSnippets = await getArchitectureSnippets(owner, repo, archFiles, branch);
+
+    // Build dependency graph and generate Mermaid DSL
+    const graph = buildDependencyGraph(codeSnippets);
+    const mermaidDSL = generateMermaidDSL(graph);
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // Send metadata with graph data and Mermaid DSL
+    res.write(`data: ${JSON.stringify({
+      type: 'metadata',
+      graph,
+      mermaidDSL,
+      filesAnalyzed: codeSnippets.length
+    })}\n\n`);
+
+    // Stream AI architecture analysis
+    const stream = await streamArchitectureAnalysis(metadata, codeSnippets, mermaidDSL, graph.externalDeps);
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        res.write(`data: ${JSON.stringify({
+          type: 'analysis_chunk',
+          text: event.delta.text
+        })}\n\n`);
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error('Architecture analysis error:', error);
+    if (!res.headersSent) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+      res.end();
+    }
+  }
+});
+
+// PR Analysis endpoint
+analyzeRepoRoute.post('/pr-analyze', async (req, res) => {
+  try {
+    const { prUrl } = req.body;
+
+    if (!prUrl) {
+      return res.status(400).json({ error: 'prUrl is required' });
+    }
+
+    const parsed = parseGithubPrOrIssueUrl(prUrl);
+    if (!parsed || parsed.type !== 'pr') {
+      return res.status(400).json({ error: 'Invalid PR URL. Use format: https://github.com/owner/repo/pull/123' });
+    }
+
+    const { owner, repo, number } = parsed;
+    const prDetails = await getPRDetails(owner, repo, number);
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // Send PR metadata
+    res.write(`data: ${JSON.stringify({
+      type: 'metadata',
+      pr: prDetails.pr,
+      files: prDetails.files.map(f => ({
+        filename: f.filename,
+        status: f.status,
+        additions: f.additions,
+        deletions: f.deletions
+      })),
+      reviews: prDetails.reviews,
+      owner,
+      repo
+    })}\n\n`);
+
+    // Stream AI PR analysis
+    const stream = await streamPRAnalysis(repo, prDetails);
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        res.write(`data: ${JSON.stringify({
+          type: 'analysis_chunk',
+          text: event.delta.text
+        })}\n\n`);
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error('PR analysis error:', error);
+    if (!res.headersSent) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+      res.end();
+    }
+  }
+});
+
+// Issue Analysis endpoint
+analyzeRepoRoute.post('/issue-analyze', async (req, res) => {
+  try {
+    const { issueUrl } = req.body;
+
+    if (!issueUrl) {
+      return res.status(400).json({ error: 'issueUrl is required' });
+    }
+
+    const parsed = parseGithubPrOrIssueUrl(issueUrl);
+    if (!parsed || parsed.type !== 'issue') {
+      return res.status(400).json({ error: 'Invalid issue URL. Use format: https://github.com/owner/repo/issues/123' });
+    }
+
+    const { owner, repo, number } = parsed;
+    const issueDetails = await getIssueDetails(owner, repo, number);
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // Send issue metadata
+    res.write(`data: ${JSON.stringify({
+      type: 'metadata',
+      issue: issueDetails.issue,
+      commentCount: issueDetails.comments.length,
+      owner,
+      repo
+    })}\n\n`);
+
+    // Stream AI issue analysis
+    const stream = await streamIssueAnalysis(repo, issueDetails);
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        res.write(`data: ${JSON.stringify({
+          type: 'analysis_chunk',
+          text: event.delta.text
+        })}\n\n`);
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error('Issue analysis error:', error);
+    if (!res.headersSent) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+      res.end();
+    }
   }
 });

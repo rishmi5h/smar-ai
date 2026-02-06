@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './AnalysisResults.css'
 import MarkdownRenderer from './MarkdownRenderer'
 import ChangesPanel from './ChangesPanel'
+import ArchitecturePanel from './ArchitecturePanel'
 
 function AnalysisResults({ results, loading, repoUrl }) {
   const [copied, setCopied] = useState(false)
@@ -109,6 +110,12 @@ function AnalysisResults({ results, loading, repoUrl }) {
         >
           Changes
         </button>
+        <button
+          className={`results-tab ${activeTab === 'architecture' ? 'results-tab-active' : ''}`}
+          onClick={() => setActiveTab('architecture')}
+        >
+          Architecture
+        </button>
       </div>
 
       {activeTab === 'analysis' && (
@@ -126,6 +133,12 @@ function AnalysisResults({ results, loading, repoUrl }) {
       {activeTab === 'changes' && (
         <div className="analysis-content">
           <ChangesPanel repoUrl={repoUrl} />
+        </div>
+      )}
+
+      {activeTab === 'architecture' && (
+        <div className="analysis-content">
+          <ArchitecturePanel repoUrl={repoUrl} />
         </div>
       )}
 

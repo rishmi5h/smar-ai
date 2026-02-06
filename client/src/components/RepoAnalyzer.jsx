@@ -5,8 +5,16 @@ import SearchBar from './SearchBar'
 import AnalysisResults from './AnalysisResults'
 import LoadingSpinner from './LoadingSpinner'
 import ChatPanel from './ChatPanel'
+import PRAnalysisResults from './PRAnalysisResults'
+import IssueAnalysisResults from './IssueAnalysisResults'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+
+const detectUrlType = (url) => {
+  if (/\/pull\/\d+/.test(url)) return 'pr'
+  if (/\/issues\/\d+/.test(url)) return 'issue'
+  return 'repo'
+}
 
 function RepoAnalyzer() {
   const [repoUrl, setRepoUrl] = useState('')
@@ -15,6 +23,7 @@ function RepoAnalyzer() {
   const [error, setError] = useState('')
   const [results, setResults] = useState(null)
   const [useStream, setUseStream] = useState(false)
+  const [resultType, setResultType] = useState('repo')
 
   const normalizeRepoUrl = (input) => {
     const trimmed = input.trim()
@@ -34,18 +43,25 @@ function RepoAnalyzer() {
     const normalizedRepoUrl = normalizeRepoUrl(repoUrl)
     setRepoUrl(normalizedRepoUrl)
 
+    const urlType = detectUrlType(normalizedRepoUrl)
+    setResultType(urlType)
+
     setLoading(true)
     setError('')
     setResults(null)
 
     try {
-      if (useStream) {
+      if (urlType === 'pr') {
+        await analyzeWithPRStream(normalizedRepoUrl)
+      } else if (urlType === 'issue') {
+        await analyzeWithIssueStream(normalizedRepoUrl)
+      } else if (useStream) {
         await analyzeWithStream(normalizedRepoUrl)
       } else {
         await analyzeWithRegularAPI(normalizedRepoUrl)
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to analyze repository')
+      setError(err.response?.data?.error || err.message || 'Failed to analyze')
       console.error('Analysis error:', err)
     } finally {
       setLoading(false)
@@ -116,11 +132,109 @@ function RepoAnalyzer() {
     setResults(streamResults)
   }
 
+  const analyzeWithPRStream = async (prUrl) => {
+    const response = await fetch(`${API_BASE_URL}/pr-analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prUrl })
+    })
+
+    if (!response.ok) {
+      const err = await response.json()
+      throw new Error(err.error || 'PR analysis failed')
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let analysisText = ''
+    const prResults = { pr: null, files: [], reviews: [], analysis: '', owner: '', repo: '' }
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      const text = decoder.decode(value)
+      const lines = text.split('\n').filter(l => l.startsWith('data: '))
+
+      for (const line of lines) {
+        try {
+          const data = JSON.parse(line.slice(6))
+          if (data.type === 'metadata') {
+            prResults.pr = data.pr
+            prResults.files = data.files
+            prResults.reviews = data.reviews
+            prResults.owner = data.owner
+            prResults.repo = data.repo
+            setResults({ ...prResults })
+          } else if (data.type === 'analysis_chunk') {
+            analysisText += data.text
+            prResults.analysis = analysisText
+            setResults({ ...prResults })
+          }
+        } catch (e) {
+          // skip malformed
+        }
+      }
+    }
+
+    setResults(prResults)
+  }
+
+  const analyzeWithIssueStream = async (issueUrl) => {
+    const response = await fetch(`${API_BASE_URL}/issue-analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ issueUrl })
+    })
+
+    if (!response.ok) {
+      const err = await response.json()
+      throw new Error(err.error || 'Issue analysis failed')
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let analysisText = ''
+    const issueResults = { issue: null, analysis: '', commentCount: 0, owner: '', repo: '' }
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      const text = decoder.decode(value)
+      const lines = text.split('\n').filter(l => l.startsWith('data: '))
+
+      for (const line of lines) {
+        try {
+          const data = JSON.parse(line.slice(6))
+          if (data.type === 'metadata') {
+            issueResults.issue = data.issue
+            issueResults.commentCount = data.commentCount
+            issueResults.owner = data.owner
+            issueResults.repo = data.repo
+            setResults({ ...issueResults })
+          } else if (data.type === 'analysis_chunk') {
+            analysisText += data.text
+            issueResults.analysis = analysisText
+            setResults({ ...issueResults })
+          }
+        } catch (e) {
+          // skip malformed
+        }
+      }
+    }
+
+    setResults(issueResults)
+  }
+
   const handleClear = () => {
     setRepoUrl('')
     setResults(null)
     setError('')
+    setResultType('repo')
   }
+
+  const currentUrlType = repoUrl ? detectUrlType(repoUrl) : 'repo'
 
   return (
     <div className="repo-analyzer">
@@ -144,6 +258,7 @@ function RepoAnalyzer() {
               onClear={handleClear}
               onExampleSelect={setRepoUrl}
               loading={loading}
+              urlType={currentUrlType}
             />
           </div>
         </div>
@@ -161,7 +276,7 @@ function RepoAnalyzer() {
 
           {loading && !results && <LoadingSpinner />}
 
-          {results && (
+          {results && resultType === 'repo' && (
             <AnalysisResults
               results={results}
               loading={loading}
@@ -169,7 +284,21 @@ function RepoAnalyzer() {
             />
           )}
 
-          {results && !loading && (
+          {results && resultType === 'pr' && (
+            <PRAnalysisResults
+              results={results}
+              loading={loading}
+            />
+          )}
+
+          {results && resultType === 'issue' && (
+            <IssueAnalysisResults
+              results={results}
+              loading={loading}
+            />
+          )}
+
+          {results && !loading && resultType === 'repo' && (
             <ChatPanel repoUrl={repoUrl} />
           )}
 

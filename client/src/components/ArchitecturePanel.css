@@ -1,0 +1,197 @@
+.architecture-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.arch-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--color-text-muted);
+}
+
+.arch-empty p {
+  margin: 0 0 1.5rem 0;
+  font-size: 0.95rem;
+}
+
+.arch-generate-btn {
+  padding: 0.6rem 2rem;
+  background-color: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.arch-generate-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.arch-generate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.arch-error {
+  color: #ef4444;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.75rem;
+  background-color: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+}
+
+.arch-results {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Diagram Section */
+.arch-diagram-section {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.arch-diagram-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-surface-light);
+}
+
+.arch-diagram-header h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.arch-diagram-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.arch-ctrl-btn {
+  padding: 0.3rem 0.6rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.arch-ctrl-btn:hover {
+  border-color: var(--color-primary);
+}
+
+.arch-zoom-label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  min-width: 3rem;
+  text-align: center;
+}
+
+.arch-diagram-container {
+  padding: 1.5rem;
+  overflow: auto;
+  max-height: 500px;
+  background-color: var(--color-bg, #0a0f1a);
+  transition: transform 0.2s;
+}
+
+.arch-diagram-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Stats */
+.arch-stats {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--color-surface-light);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.arch-stat {
+  font-size: 0.9rem;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* External Dependencies */
+.arch-external {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem;
+  background-color: var(--color-surface-light);
+}
+
+.arch-external h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.arch-dep-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.arch-dep-tag {
+  display: inline-block;
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-family: 'Fira Code', monospace;
+  border: 1px solid var(--color-border);
+}
+
+/* AI Analysis */
+.arch-analysis {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  background-color: var(--color-surface-light);
+}
+
+.arch-analysis h4 {
+  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .arch-diagram-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .arch-diagram-controls {
+    flex-wrap: wrap;
+  }
+
+  .arch-stats {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

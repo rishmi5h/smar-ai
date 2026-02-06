@@ -235,6 +235,181 @@ export const getCompare = async (owner, repo, base, head) => {
   }
 };
 
+// Parse PR or Issue URL — returns { owner, repo, type, number } or null
+export const parseGithubPrOrIssueUrl = (url) => {
+  const prMatch = url.match(/github\.com\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/);
+  if (prMatch) return { owner: prMatch[1], repo: prMatch[2], type: 'pr', number: parseInt(prMatch[3]) };
+
+  const issueMatch = url.match(/github\.com\/([^\/]+)\/([^\/]+)\/issues\/(\d+)/);
+  if (issueMatch) return { owner: issueMatch[1], repo: issueMatch[2], type: 'issue', number: parseInt(issueMatch[3]) };
+
+  return null;
+};
+
+// Get PR details including files, reviews, and comments
+export const getPRDetails = async (owner, repo, prNumber) => {
+  try {
+    const [prResponse, filesResponse] = await Promise.all([
+      axios.get(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}`, {
+        headers: { ...getHeaders(), 'Accept': 'application/vnd.github.v3+json' }
+      }),
+      axios.get(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}/files`, {
+        headers: { ...getHeaders(), 'Accept': 'application/vnd.github.v3+json' }
+      })
+    ]);
+
+    const [reviewsResponse, commentsResponse] = await Promise.all([
+      axios.get(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}/reviews`, {
+        headers: { ...getHeaders(), 'Accept': 'application/vnd.github.v3+json' }
+      }).catch(() => ({ data: [] })),
+      axios.get(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}/comments`, {
+        headers: { ...getHeaders(), 'Accept': 'application/vnd.github.v3+json' }
+      }).catch(() => ({ data: [] }))
+    ]);
+
+    const pr = prResponse.data;
+    return {
+      pr: {
+        title: pr.title,
+        body: pr.body,
+        state: pr.state,
+        merged: pr.merged || false,
+        author: pr.user?.login || 'Unknown',
+        base: pr.base?.ref || '',
+        head: pr.head?.ref || '',
+        additions: pr.additions || 0,
+        deletions: pr.deletions || 0,
+        changedFiles: pr.changed_files || 0,
+        created_at: pr.created_at,
+        updated_at: pr.updated_at,
+        merged_at: pr.merged_at
+      },
+      files: (filesResponse.data || []).map(f => ({
+        filename: f.filename,
+        status: f.status,
+        additions: f.additions,
+        deletions: f.deletions,
+        patch: f.patch || ''
+      })),
+      reviews: (reviewsResponse.data || []).map(r => ({
+        user: r.user?.login || 'Unknown',
+        state: r.state,
+        body: r.body || ''
+      })),
+      comments: (commentsResponse.data || []).map(c => ({
+        user: c.user?.login || 'Unknown',
+        body: c.body || '',
+        path: c.path,
+        created_at: c.created_at
+      }))
+    };
+  } catch (error) {
+    throw new Error(`Failed to fetch PR details: ${error.message}`);
+  }
+};
+
+// Get Issue details including comments
+export const getIssueDetails = async (owner, repo, issueNumber) => {
+  try {
+    const [issueResponse, commentsResponse] = await Promise.all([
+      axios.get(`${GITHUB_API_BASE}/repos/${owner}/${repo}/issues/${issueNumber}`, {
+        headers: { ...getHeaders(), 'Accept': 'application/vnd.github.v3+json' }
+      }),
+      axios.get(`${GITHUB_API_BASE}/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
+        headers: { ...getHeaders(), 'Accept': 'application/vnd.github.v3+json' }
+      }).catch(() => ({ data: [] }))
+    ]);
+
+    const issue = issueResponse.data;
+    return {
+      issue: {
+        title: issue.title,
+        body: issue.body,
+        state: issue.state,
+        author: issue.user?.login || 'Unknown',
+        labels: (issue.labels || []).map(l => l.name),
+        assignees: (issue.assignees || []).map(a => a.login),
+        created_at: issue.created_at,
+        updated_at: issue.updated_at,
+        closed_at: issue.closed_at
+      },
+      comments: (commentsResponse.data || []).map(c => ({
+        user: c.user?.login || 'Unknown',
+        body: c.body || '',
+        created_at: c.created_at
+      }))
+    };
+  } catch (error) {
+    throw new Error(`Failed to fetch issue details: ${error.message}`);
+  }
+};
+
+// Get source code files for architecture analysis (prioritizes actual code, not config/docs)
+export const getArchitectureCodeFiles = async (owner, repo) => {
+  const metadata = await getRepoMetadata(owner, repo);
+  const branch = metadata.defaultBranch;
+  const tree = await getRepoTree(owner, repo, branch);
+
+  const sourceExtensions = [
+    '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs',
+    '.py', '.go', '.java', '.rs', '.rb', '.cpp', '.c'
+  ];
+
+  const excludePatterns = [
+    'node_modules/', 'dist/', 'build/', '.next/', 'vendor/', '__pycache__/',
+    '.min.js', '.min.css', '.bundle.', '.chunk.',
+    '__tests__/', '__test__/', 'test/', 'tests/', 'spec/',
+    '.test.', '.spec.', '.d.ts',
+    'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'
+  ];
+
+  const sourceFiles = tree
+    .filter(item => item.type === 'blob')
+    .filter(item => {
+      const ext = '.' + item.path.split('.').pop();
+      return sourceExtensions.includes(ext.toLowerCase());
+    })
+    .filter(item => !excludePatterns.some(p => item.path.includes(p)))
+    .sort((a, b) => {
+      // Shallower files first (entry points), then alphabetically
+      const depthA = a.path.split('/').length;
+      const depthB = b.path.split('/').length;
+      if (depthA !== depthB) return depthA - depthB;
+      return a.path.localeCompare(b.path);
+    })
+    .slice(0, 50);
+
+  return { files: sourceFiles.map(f => f.path), branch };
+};
+
+// Fetch architecture code snippets in parallel (only imports matter, so keep first 2000 chars)
+export const getArchitectureSnippets = async (owner, repo, filePaths, branch) => {
+  const snippets = [];
+  const batchSize = 10;
+
+  for (let i = 0; i < Math.min(filePaths.length, 30); i += batchSize) {
+    const batch = filePaths.slice(i, i + batchSize);
+    const results = await Promise.allSettled(
+      batch.map(async (filePath) => {
+        const response = await axios.get(
+          `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filePath}`,
+          { headers: getHeaders() }
+        );
+        const contentStr = typeof response.data === 'string' ? response.data : String(response.data);
+        return { path: filePath, content: contentStr.substring(0, 2000) };
+      })
+    );
+
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        snippets.push(result.value);
+      }
+    }
+  }
+
+  return snippets;
+};
+
 // Get code snapshots at a specific commit
 export const getCodeSnippetsAtRef = async (owner, repo, ref, filePaths) => {
   const snippets = [];

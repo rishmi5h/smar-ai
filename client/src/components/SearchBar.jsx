@@ -11,7 +11,8 @@ function SearchBar({
   onAnalyze,
   onClear,
   onExampleSelect,
-  loading
+  loading,
+  urlType = 'repo'
 }) {
   const [showSettings, setShowSettings] = useState(false)
 
@@ -20,29 +21,42 @@ function SearchBar({
     onExampleSelect?.(value)
   }
 
+  const urlTypeBadge = urlType === 'pr'
+    ? { label: 'Pull Request', className: 'url-badge-pr' }
+    : urlType === 'issue'
+    ? { label: 'Issue', className: 'url-badge-issue' }
+    : null
+
   return (
     <div className="search-bar">
       <form onSubmit={onAnalyze} className="search-form">
         <div className="input-group">
+          {urlTypeBadge && (
+            <span className={`url-type-badge ${urlTypeBadge.className}`}>
+              {urlTypeBadge.label}
+            </span>
+          )}
           <input
             type="text"
-            placeholder="Enter a GitHub repo or link (e.g., owner/repo)"
+            placeholder="Paste a GitHub repo, PR, or issue URL"
             value={repoUrl}
             onChange={(e) => setRepoUrl(e.target.value)}
             disabled={loading}
             className="search-input"
           />
-          <select
-            id="analysis-type-inline"
-            value={analysisType}
-            onChange={(e) => setAnalysisType(e.target.value)}
-            disabled={loading}
-            className="analysis-select-inline"
-          >
-            <option value="overview">Overview</option>
-            <option value="detailed">Detailed</option>
-            <option value="learning">Learning</option>
-          </select>
+          {urlType === 'repo' && (
+            <select
+              id="analysis-type-inline"
+              value={analysisType}
+              onChange={(e) => setAnalysisType(e.target.value)}
+              disabled={loading}
+              className="analysis-select-inline"
+            >
+              <option value="overview">Overview</option>
+              <option value="detailed">Detailed</option>
+              <option value="learning">Learning</option>
+            </select>
+          )}
           {repoUrl && (
             <button
               type="button"
@@ -60,7 +74,13 @@ function SearchBar({
             disabled={loading || !repoUrl.trim()}
             className="search-btn"
           >
-            {loading ? '⏳ Analyzing...' : '🚀 Analyze'}
+            {loading
+              ? '⏳ Analyzing...'
+              : urlType === 'pr'
+              ? '🔍 Review PR'
+              : urlType === 'issue'
+              ? '🔍 Analyze Issue'
+              : '🚀 Analyze'}
           </button>
         </div>
 
