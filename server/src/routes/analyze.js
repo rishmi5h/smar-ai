@@ -9,7 +9,8 @@ import {
   generateCodeOverview,
   generateCodeExplanation,
   generateLearningGuide,
-  streamCodeAnalysis
+  streamCodeAnalysis,
+  streamChatResponse
 } from '../services/groqService.js';
 
 export const analyzeRepoRoute = express.Router();
@@ -139,6 +140,49 @@ analyzeRepoRoute.post('/analyze-stream', async (req, res) => {
       message: error.message
     })}\n\n`);
     res.end();
+  }
+});
+
+// Interactive Q&A chat endpoint
+analyzeRepoRoute.post('/chat', async (req, res) => {
+  try {
+    const { repoUrl, question, history = [] } = req.body;
+
+    if (!repoUrl || !question) {
+      return res.status(400).json({ error: 'repoUrl and question are required' });
+    }
+
+    const { owner, repo } = parseGithubUrl(repoUrl);
+    const metadata = await getRepoMetadata(owner, repo);
+    const { files } = await getRelevantCodeFiles(owner, repo);
+    const filePaths = files.map(f => f.path);
+    const codeSnippets = await getCodeSnippets(owner, repo, filePaths);
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const stream = await streamChatResponse(metadata, codeSnippets, history, question);
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        res.write(`data: ${JSON.stringify({
+          type: 'chat_chunk',
+          text: event.delta.text
+        })}\n\n`);
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error('Chat error:', error);
+    if (!res.headersSent) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+      res.end();
+    }
   }
 });
 

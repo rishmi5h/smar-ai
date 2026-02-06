@@ -4,6 +4,7 @@ import './RepoAnalyzer.css'
 import SearchBar from './SearchBar'
 import AnalysisResults from './AnalysisResults'
 import LoadingSpinner from './LoadingSpinner'
+import ChatPanel from './ChatPanel'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
@@ -165,6 +166,10 @@ function RepoAnalyzer() {
               results={results}
               loading={loading}
             />
+          )}
+
+          {results && !loading && (
+            <ChatPanel repoUrl={repoUrl} />
           )}
 
           {!results && !loading && !error && null}

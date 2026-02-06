@@ -139,6 +139,66 @@ Make it beginner-friendly and concise.`;
   return await callGroq(prompt, 1500);
 };
 
+// Streaming chat response for interactive Q&A
+export const streamChatResponse = async (
+  metadata,
+  codeSnippets,
+  history,
+  question,
+) => {
+  const snippetText = codeSnippets
+    .slice(0, 5)
+    .map((s) => {
+      const contentStr =
+        typeof s.content === "string" ? s.content : String(s.content);
+      return `\n## File: ${s.path}\n\`\`\`\n${contentStr.substring(0, 1000)}\n\`\`\``;
+    })
+    .join("\n");
+
+  const systemPrompt = `You are a knowledgeable code assistant helping a user understand a GitHub repository. Answer questions based on the repository context provided below. Be concise, specific, and reference actual file names and code when relevant.
+
+Repository: ${metadata.name}
+Language: ${metadata.language || "Unknown"}
+Description: ${metadata.description || "No description"}
+
+Code files:
+${snippetText}
+
+Answer the user's question based on this codebase. If the question is outside the scope of the code provided, say so.`;
+
+  const messages = [
+    { role: "system", content: systemPrompt },
+    ...history,
+    { role: "user", content: question },
+  ];
+
+  return {
+    [Symbol.asyncIterator]: async function* () {
+      try {
+        const stream = await groq.chat.completions.create({
+          messages,
+          model: GROQ_MODEL,
+          temperature: 0.7,
+          stream: true,
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content;
+          if (content) {
+            yield {
+              type: "content_block_delta",
+              delta: { type: "text_delta", text: content },
+            };
+          }
+        }
+      } catch (error) {
+        console.error("Groq chat streaming error:", error.message);
+        throw new Error(`Groq chat streaming failed: ${error.message}`);
+      }
+    },
+  };
+};
+
 // Streaming version for real-time analysis
 export const streamCodeAnalysis = async (
   metadata,
