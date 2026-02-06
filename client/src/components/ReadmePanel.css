@@ -1,0 +1,108 @@
+.readme-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.readme-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--color-text-muted);
+}
+
+.readme-empty p {
+  margin: 0 0 1.5rem 0;
+  font-size: 0.95rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.readme-generate-btn {
+  padding: 0.6rem 2rem;
+  background-color: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.readme-generate-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.readme-generate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.readme-error {
+  color: #ef4444;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.75rem;
+  background-color: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+}
+
+.readme-results {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.readme-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.readme-action-btn {
+  padding: 0.4rem 0.9rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-family: inherit;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.readme-action-btn:hover {
+  border-color: var(--color-primary);
+  background-color: rgba(79, 124, 255, 0.08);
+}
+
+.readme-regenerate-btn {
+  margin-left: auto;
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
+
+.readme-regenerate-btn:hover {
+  border-color: rgba(245, 158, 11, 0.6);
+  background-color: rgba(245, 158, 11, 0.08);
+}
+
+.readme-preview {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  background-color: var(--color-surface-light);
+}
+
+@media (max-width: 768px) {
+  .readme-actions {
+    flex-direction: column;
+  }
+
+  .readme-regenerate-btn {
+    margin-left: 0;
+  }
+}

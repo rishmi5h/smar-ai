@@ -3,6 +3,7 @@ import './AnalysisResults.css'
 import MarkdownRenderer from './MarkdownRenderer'
 import ChangesPanel from './ChangesPanel'
 import ArchitecturePanel from './ArchitecturePanel'
+import ReadmePanel from './ReadmePanel'
 
 function AnalysisResults({ results, loading, repoUrl }) {
   const [copied, setCopied] = useState(false)
@@ -116,6 +117,12 @@ function AnalysisResults({ results, loading, repoUrl }) {
         >
           Architecture
         </button>
+        <button
+          className={`results-tab ${activeTab === 'readme' ? 'results-tab-active' : ''}`}
+          onClick={() => setActiveTab('readme')}
+        >
+          README
+        </button>
       </div>
 
       {activeTab === 'analysis' && (
@@ -139,6 +146,12 @@ function AnalysisResults({ results, loading, repoUrl }) {
       {activeTab === 'architecture' && (
         <div className="analysis-content">
           <ArchitecturePanel repoUrl={repoUrl} />
+        </div>
+      )}
+
+      {activeTab === 'readme' && (
+        <div className="analysis-content">
+          <ReadmePanel repoUrl={repoUrl} />
         </div>
       )}
 

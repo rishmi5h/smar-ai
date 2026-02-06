@@ -521,6 +521,87 @@ Be concise and actionable.`;
   };
 };
 
+// Streaming README generation
+export const streamReadmeGeneration = async (metadata, codeSnippets) => {
+  const snippetText = codeSnippets
+    .slice(0, 10)
+    .map((s) => {
+      const contentStr =
+        typeof s.content === "string" ? s.content : String(s.content);
+      return `## ${s.path}\n\`\`\`\n${contentStr.substring(0, 1500)}\n\`\`\``;
+    })
+    .join("\n\n");
+
+  const fileList = codeSnippets.map((s) => s.path).join("\n");
+
+  const prompt = `Generate a professional, comprehensive README.md for this GitHub repository.
+
+Repository: ${metadata.name}
+Owner: ${metadata.owner}
+Language: ${metadata.language || "Unknown"}
+Description: ${metadata.description || "No description"}
+Stars: ${metadata.stars || 0}
+Topics: ${(metadata.topics || []).join(", ") || "None"}
+
+Project files:
+${fileList}
+
+Code samples:
+${snippetText}
+
+Generate a complete README.md with proper markdown formatting. Include:
+
+1. **Project Title** — Name with a concise tagline
+2. **Overview** — What the project does, who it's for, and why it exists (2-3 sentences)
+3. **Features** — Key capabilities as a bullet list
+4. **Tech Stack** — Technologies and frameworks used
+5. **Getting Started** — Prerequisites, installation steps, and environment setup (infer from package.json, config files, etc.)
+6. **Usage** — How to run the project and basic usage examples
+7. **Project Structure** — Brief explanation of the main directories and files
+8. **Contributing** — How to contribute (standard open-source guidelines)
+9. **License** — Placeholder for license
+
+Make it clean, professional, and ready to use. Use shields.io badge placeholders where appropriate. Output ONLY the raw markdown content, no extra commentary.`;
+
+  return {
+    [Symbol.asyncIterator]: async function* () {
+      try {
+        const stream = await groq.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are smar-ai, an AI-powered README generator built by rishmi5h. You create professional, well-structured README.md files for GitHub repositories based on their code and metadata. Output only raw markdown. You are powered by Groq.",
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+          model: GROQ_MODEL,
+          temperature: 0.7,
+          stream: true,
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content;
+          if (content) {
+            yield {
+              type: "content_block_delta",
+              delta: { type: "text_delta", text: content },
+            };
+          }
+        }
+      } catch (error) {
+        console.error("Groq README generation streaming error:", error.message);
+        throw new Error(
+          `Groq README generation streaming failed: ${error.message}`,
+        );
+      }
+    },
+  };
+};
+
 // Streaming version for real-time analysis
 export const streamCodeAnalysis = async (
   metadata,

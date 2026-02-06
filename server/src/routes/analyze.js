@@ -23,7 +23,8 @@ import {
   streamEvolutionAnalysis,
   streamArchitectureAnalysis,
   streamPRAnalysis,
-  streamIssueAnalysis
+  streamIssueAnalysis,
+  streamReadmeGeneration
 } from '../services/groqService.js';
 import {
   buildDependencyGraph,
@@ -372,6 +373,62 @@ analyzeRepoRoute.post('/architecture', async (req, res) => {
     res.end();
   } catch (error) {
     console.error('Architecture analysis error:', error);
+    if (!res.headersSent) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+      res.end();
+    }
+  }
+});
+
+// README generation endpoint
+analyzeRepoRoute.post('/readme', async (req, res) => {
+  try {
+    const { repoUrl } = req.body;
+
+    if (!repoUrl) {
+      return res.status(400).json({ error: 'repoUrl is required' });
+    }
+
+    const { owner, repo } = parseGithubUrl(repoUrl);
+    const metadata = await getRepoMetadata(owner, repo);
+    const { files } = await getRelevantCodeFiles(owner, repo);
+    const filePaths = files.map(f => f.path);
+    const codeSnippets = await getCodeSnippets(owner, repo, filePaths);
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // Send metadata
+    res.write(`data: ${JSON.stringify({
+      type: 'metadata',
+      repository: {
+        name: metadata.name,
+        owner: metadata.owner,
+        description: metadata.description,
+        language: metadata.language
+      },
+      filesAnalyzed: codeSnippets.length
+    })}\n\n`);
+
+    // Stream README generation
+    const stream = await streamReadmeGeneration(metadata, codeSnippets);
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        res.write(`data: ${JSON.stringify({
+          type: 'analysis_chunk',
+          text: event.delta.text
+        })}\n\n`);
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error('README generation error:', error);
     if (!res.headersSent) {
       res.status(400).json({ error: error.message });
     } else {
