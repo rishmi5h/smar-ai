@@ -161,3 +161,104 @@ export const getCodeSnippets = async (owner, repo, filePaths) => {
 
   return snippets;
 };
+
+// Get recent commits for a repository
+export const getRecentCommits = async (owner, repo, since, perPage = 20) => {
+  try {
+    const params = { per_page: perPage };
+    if (since) params.since = since;
+
+    const response = await axios.get(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/commits`,
+      { headers: getHeaders(), params }
+    );
+
+    return response.data.map(commit => ({
+      sha: commit.sha,
+      shortSha: commit.sha.substring(0, 7),
+      message: commit.commit.message.split('\n')[0],
+      author: commit.commit.author.name,
+      date: commit.commit.author.date
+    }));
+  } catch (error) {
+    throw new Error(`Failed to fetch commits: ${error.message}`);
+  }
+};
+
+// Compare two commits
+export const getCompare = async (owner, repo, base, head) => {
+  try {
+    const response = await axios.get(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/compare/${base}...${head}`,
+      { headers: getHeaders() }
+    );
+
+    const { total_commits, files, commits } = response.data;
+
+    let totalAdditions = 0;
+    let totalDeletions = 0;
+
+    const changedFiles = (files || []).map(f => {
+      totalAdditions += f.additions;
+      totalDeletions += f.deletions;
+      return {
+        filename: f.filename,
+        status: f.status,
+        additions: f.additions,
+        deletions: f.deletions,
+        patch: f.patch || ''
+      };
+    });
+
+    return {
+      totalCommits: total_commits,
+      filesChanged: changedFiles.length,
+      additions: totalAdditions,
+      deletions: totalDeletions,
+      files: changedFiles,
+      commits: (commits || []).map(c => ({
+        sha: c.sha,
+        shortSha: c.sha.substring(0, 7),
+        message: c.commit.message.split('\n')[0],
+        author: c.commit.author.name,
+        date: c.commit.author.date
+      }))
+    };
+  } catch (error) {
+    throw new Error(`Failed to compare commits: ${error.message}`);
+  }
+};
+
+// Get details of a single commit
+export const getCommitDetail = async (owner, repo, sha) => {
+  try {
+    const response = await axios.get(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/commits/${sha}`,
+      { headers: getHeaders() }
+    );
+
+    const { commit, stats, files } = response.data;
+
+    return {
+      sha: response.data.sha,
+      shortSha: response.data.sha.substring(0, 7),
+      message: commit.message,
+      author: commit.author.name,
+      date: commit.author.date,
+      stats: {
+        additions: stats?.additions || 0,
+        deletions: stats?.deletions || 0,
+        total: stats?.total || 0
+      },
+      files: (files || []).map(f => ({
+        filename: f.filename,
+        status: f.status,
+        additions: f.additions,
+        deletions: f.deletions,
+        patch: f.patch || ''
+      }))
+    };
+  } catch (error) {
+    throw new Error(`Failed to fetch commit detail: ${error.message}`);
+  }
+};

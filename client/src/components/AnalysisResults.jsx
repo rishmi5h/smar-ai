@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import './AnalysisResults.css'
 import MarkdownRenderer from './MarkdownRenderer'
+import ChangesPanel from './ChangesPanel'
 
-function AnalysisResults({ results, loading }) {
+function AnalysisResults({ results, loading, repoUrl }) {
   const [copied, setCopied] = useState(false)
+  const [activeTab, setActiveTab] = useState('analysis')
 
   if (!results || !results.repository) {
     return null
@@ -26,9 +28,9 @@ function AnalysisResults({ results, loading }) {
   }
 
   const typeLabels = {
-    overview: '📋 Code Overview',
-    detailed: '📖 Detailed Explanation',
-    learning: '🎓 Learning Guide'
+    overview: 'Code Overview',
+    detailed: 'Detailed Explanation',
+    learning: 'Learning Guide'
   }
 
   return (
@@ -48,14 +50,14 @@ function AnalysisResults({ results, loading }) {
           <div className="repo-meta">
             {results.repository.language && (
               <span className="meta-item">
-                💻 {results.repository.language}
+                {results.repository.language}
               </span>
             )}
             <span className="meta-item">
-              ⭐ {results.repository.stars.toLocaleString()} stars
+              {results.repository.stars.toLocaleString()} stars
             </span>
             <span className="meta-item">
-              📁 {results.filesAnalyzed} files analyzed
+              {results.filesAnalyzed} files analyzed
             </span>
           </div>
           {results.repository.topics && results.repository.topics.length > 0 && (
@@ -70,35 +72,62 @@ function AnalysisResults({ results, loading }) {
         </div>
 
         <div className="results-actions">
-          <div className="analysis-type-badge">
-            {typeLabels[results.analysisType]}
-          </div>
-          <button
-            onClick={handleCopy}
-            className="action-btn"
-            title="Copy to clipboard"
-          >
-            {copied ? '✓ Copied' : '📋 Copy'}
-          </button>
-          <button
-            onClick={handleDownload}
-            className="action-btn"
-            title="Download as markdown"
-          >
-            ⬇️ Download
-          </button>
+          {activeTab === 'analysis' && (
+            <>
+              <div className="analysis-type-badge">
+                {typeLabels[results.analysisType]}
+              </div>
+              <button
+                onClick={handleCopy}
+                className="action-btn"
+                title="Copy to clipboard"
+              >
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+              <button
+                onClick={handleDownload}
+                className="action-btn"
+                title="Download as markdown"
+              >
+                Download
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="analysis-content">
-        {loading && (
-          <div className="streaming-indicator">
-            <span className="pulse"></span>
-            Analyzing in real-time...
-          </div>
-        )}
-        <MarkdownRenderer content={results.analysis} />
+      <div className="results-tabs">
+        <button
+          className={`results-tab ${activeTab === 'analysis' ? 'results-tab-active' : ''}`}
+          onClick={() => setActiveTab('analysis')}
+        >
+          Analysis
+        </button>
+        <button
+          className={`results-tab ${activeTab === 'changes' ? 'results-tab-active' : ''}`}
+          onClick={() => setActiveTab('changes')}
+        >
+          Changes
+        </button>
       </div>
+
+      {activeTab === 'analysis' && (
+        <div className="analysis-content">
+          {loading && (
+            <div className="streaming-indicator">
+              <span className="pulse"></span>
+              Analyzing in real-time...
+            </div>
+          )}
+          <MarkdownRenderer content={results.analysis} />
+        </div>
+      )}
+
+      {activeTab === 'changes' && (
+        <div className="analysis-content">
+          <ChangesPanel repoUrl={repoUrl} />
+        </div>
+      )}
 
       <div className="results-footer">
         <p className="timestamp">

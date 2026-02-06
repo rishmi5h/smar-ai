@@ -165,6 +165,7 @@ function RepoAnalyzer() {
             <AnalysisResults
               results={results}
               loading={loading}
+              repoUrl={repoUrl}
             />
           )}
 

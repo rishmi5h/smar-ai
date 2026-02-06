@@ -144,6 +144,134 @@ Make it beginner-friendly and concise.`;
   return await callGroq(prompt, 1500);
 };
 
+// Streaming diff/changes analysis
+export const streamDiffAnalysis = async (compareData, repoName) => {
+  // Build a condensed diff summary for the AI
+  const fileSummaries = compareData.files
+    .slice(0, 10)
+    .map((f) => {
+      const patch = f.patch ? f.patch.substring(0, 2000) : "(no patch available)";
+      return `### ${f.filename} [${f.status}] (+${f.additions} -${f.deletions})\n\`\`\`diff\n${patch}\n\`\`\``;
+    })
+    .join("\n\n");
+
+  const prompt = `Analyze these code changes in the repository "${repoName}".
+
+**Stats:** ${compareData.totalCommits} commits, ${compareData.filesChanged} files changed, +${compareData.additions} additions, -${compareData.deletions} deletions
+
+**Changed files:**
+${fileSummaries}
+
+Provide a clear analysis covering:
+1. **Summary** - What changed at a high level
+2. **Key Changes** - The most important modifications and why they matter
+3. **Impact** - What parts of the codebase are affected
+4. **Potential Risks** - Any concerns or things to watch out for
+
+Be concise and specific. Reference actual filenames.`;
+
+  return {
+    [Symbol.asyncIterator]: async function* () {
+      try {
+        const stream = await groq.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub repositories and help developers understand codebases. You are powered by Groq.",
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+          model: GROQ_MODEL,
+          temperature: 0.7,
+          stream: true,
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content;
+          if (content) {
+            yield {
+              type: "content_block_delta",
+              delta: { type: "text_delta", text: content },
+            };
+          }
+        }
+      } catch (error) {
+        console.error("Groq diff analysis streaming error:", error.message);
+        throw new Error(`Groq diff analysis streaming failed: ${error.message}`);
+      }
+    },
+  };
+};
+
+// Streaming commit detail analysis
+export const streamCommitAnalysis = async (commitData, repoName) => {
+  const fileSummaries = commitData.files
+    .slice(0, 10)
+    .map((f) => {
+      const patch = f.patch ? f.patch.substring(0, 2000) : "(no patch available)";
+      return `### ${f.filename} [${f.status}] (+${f.additions} -${f.deletions})\n\`\`\`diff\n${patch}\n\`\`\``;
+    })
+    .join("\n\n");
+
+  const prompt = `Analyze this single commit in the repository "${repoName}".
+
+**Commit:** ${commitData.shortSha} - "${commitData.message}"
+**Author:** ${commitData.author} on ${new Date(commitData.date).toLocaleDateString()}
+**Stats:** +${commitData.stats.additions} additions, -${commitData.stats.deletions} deletions across ${commitData.files.length} files
+
+**Changed files:**
+${fileSummaries}
+
+Explain:
+1. **What this commit does** - Clear summary of the change
+2. **Files modified** - What each changed file contributes to this commit
+3. **Impact** - How this affects the overall codebase
+
+Be concise and reference actual code when relevant.`;
+
+  return {
+    [Symbol.asyncIterator]: async function* () {
+      try {
+        const stream = await groq.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub repositories and help developers understand codebases. You are powered by Groq.",
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+          model: GROQ_MODEL,
+          temperature: 0.7,
+          stream: true,
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content;
+          if (content) {
+            yield {
+              type: "content_block_delta",
+              delta: { type: "text_delta", text: content },
+            };
+          }
+        }
+      } catch (error) {
+        console.error("Groq commit analysis streaming error:", error.message);
+        throw new Error(
+          `Groq commit analysis streaming failed: ${error.message}`,
+        );
+      }
+    },
+  };
+};
+
 // Streaming chat response for interactive Q&A
 export const streamChatResponse = async (
   metadata,
