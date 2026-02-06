@@ -229,36 +229,25 @@ export const getCompare = async (owner, repo, base, head) => {
   }
 };
 
-// Get details of a single commit
-export const getCommitDetail = async (owner, repo, sha) => {
-  try {
-    const response = await axios.get(
-      `${GITHUB_API_BASE}/repos/${owner}/${repo}/commits/${sha}`,
-      { headers: getHeaders() }
-    );
+// Get code snapshots at a specific commit
+export const getCodeSnippetsAtRef = async (owner, repo, ref, filePaths) => {
+  const snippets = [];
 
-    const { commit, stats, files } = response.data;
-
-    return {
-      sha: response.data.sha,
-      shortSha: response.data.sha.substring(0, 7),
-      message: commit.message,
-      author: commit.author.name,
-      date: commit.author.date,
-      stats: {
-        additions: stats?.additions || 0,
-        deletions: stats?.deletions || 0,
-        total: stats?.total || 0
-      },
-      files: (files || []).map(f => ({
-        filename: f.filename,
-        status: f.status,
-        additions: f.additions,
-        deletions: f.deletions,
-        patch: f.patch || ''
-      }))
-    };
-  } catch (error) {
-    throw new Error(`Failed to fetch commit detail: ${error.message}`);
+  for (const filePath of filePaths.slice(0, 10)) {
+    try {
+      const response = await axios.get(
+        `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${filePath}`,
+        { headers: getHeaders() }
+      );
+      const contentStr = typeof response.data === 'string' ? response.data : String(response.data);
+      snippets.push({
+        path: filePath,
+        content: contentStr.substring(0, 5000)
+      });
+    } catch {
+      // File may not exist at this ref — skip
+    }
   }
+
+  return snippets;
 };

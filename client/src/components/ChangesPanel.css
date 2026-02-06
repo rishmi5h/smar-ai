@@ -156,6 +156,13 @@
   cursor: not-allowed;
 }
 
+/* Results */
+.compare-results {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
 /* Stats Bar */
 .compare-stats {
   display: flex;
@@ -322,26 +329,19 @@
   padding: 0.65rem 1rem;
   border: 1px solid var(--color-border);
   border-bottom: none;
-  cursor: pointer;
-  transition: background-color 0.15s;
 }
 
 .commit-row:first-of-type {
   border-radius: 8px 8px 0 0;
 }
 
-.commit-row:last-child,
-.commit-row:has(+ .commit-detail-panel:last-child) {
+.commit-row:last-child {
   border-bottom: 1px solid var(--color-border);
+  border-radius: 0 0 8px 8px;
 }
 
-.commit-row:hover {
-  background-color: var(--color-surface-light);
-}
-
-.commit-row-expanded {
-  background-color: var(--color-surface-light);
-  border-bottom: 1px solid var(--color-border);
+.commit-row:only-child {
+  border-radius: 8px;
 }
 
 .commit-sha {
@@ -372,21 +372,6 @@
   flex-shrink: 0;
 }
 
-.commit-detail-panel {
-  padding: 1.25rem;
-  border: 1px solid var(--color-border);
-  border-top: none;
-  background-color: var(--color-surface-light);
-}
-
-.commit-detail-panel:last-child {
-  border-radius: 0 0 8px 8px;
-}
-
-.commit-files {
-  margin-top: 1rem;
-}
-
 /* Empty State */
 .changes-empty {
   text-align: center;
@@ -399,7 +384,7 @@
   font-size: 0.95rem;
 }
 
-/* Streaming cursor (reuse from ChatPanel) */
+/* Streaming cursor */
 .chat-cursor {
   display: inline-block;
   width: 6px;

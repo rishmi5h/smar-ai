@@ -6,7 +6,8 @@ import {
   getCodeSnippets,
   getRecentCommits,
   getCompare,
-  getCommitDetail
+  getRepoTree,
+  getCodeSnippetsAtRef
 } from '../services/githubService.js';
 import {
   generateCodeOverview,
@@ -14,8 +15,7 @@ import {
   generateLearningGuide,
   streamCodeAnalysis,
   streamChatResponse,
-  streamDiffAnalysis,
-  streamCommitAnalysis
+  streamEvolutionAnalysis
 } from '../services/groqService.js';
 
 export const analyzeRepoRoute = express.Router();
@@ -210,23 +210,38 @@ analyzeRepoRoute.get('/commits', async (req, res) => {
   }
 });
 
-// Compare two commits with AI analysis
+// Compare codebase evolution between two commits
 analyzeRepoRoute.post('/compare', async (req, res) => {
   try {
-    const { repoUrl, base, head } = req.body;
+    const { repoUrl, base, head, baseLabel, headLabel } = req.body;
 
     if (!repoUrl || !base || !head) {
       return res.status(400).json({ error: 'repoUrl, base, and head are required' });
     }
 
     const { owner, repo } = parseGithubUrl(repoUrl);
-    const compareData = await getCompare(owner, repo, base, head);
+
+    // Fetch compare stats and relevant file list in parallel
+    const [compareData, baseTree, headTree] = await Promise.all([
+      getCompare(owner, repo, base, head),
+      getRepoTree(owner, repo, base),
+      getRepoTree(owner, repo, head)
+    ]);
+
+    // Get the changed filenames to know which files to fetch
+    const changedFilePaths = compareData.files.map(f => f.filename);
+
+    // Fetch code at both commits for changed files
+    const [baseSnippets, headSnippets] = await Promise.all([
+      getCodeSnippetsAtRef(owner, repo, base, changedFilePaths),
+      getCodeSnippetsAtRef(owner, repo, head, changedFilePaths)
+    ]);
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    // Send comparison metadata first
+    // Send comparison metadata
     res.write(`data: ${JSON.stringify({
       type: 'metadata',
       totalCommits: compareData.totalCommits,
@@ -237,14 +252,20 @@ analyzeRepoRoute.post('/compare', async (req, res) => {
         filename: f.filename,
         status: f.status,
         additions: f.additions,
-        deletions: f.deletions,
-        patch: f.patch
+        deletions: f.deletions
       })),
       commits: compareData.commits
     })}\n\n`);
 
-    // Stream AI analysis
-    const stream = await streamDiffAnalysis(compareData, repo);
+    // Stream AI evolution analysis
+    const stream = await streamEvolutionAnalysis(
+      repo,
+      baseSnippets,
+      headSnippets,
+      compareData,
+      baseLabel || base.substring(0, 7),
+      headLabel || head.substring(0, 7)
+    );
 
     for await (const event of stream) {
       if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
@@ -259,53 +280,6 @@ analyzeRepoRoute.post('/compare', async (req, res) => {
     res.end();
   } catch (error) {
     console.error('Compare error:', error);
-    if (!res.headersSent) {
-      res.status(400).json({ error: error.message });
-    } else {
-      res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
-      res.end();
-    }
-  }
-});
-
-// Get commit detail with AI analysis
-analyzeRepoRoute.post('/commit-detail', async (req, res) => {
-  try {
-    const { repoUrl, sha } = req.body;
-
-    if (!repoUrl || !sha) {
-      return res.status(400).json({ error: 'repoUrl and sha are required' });
-    }
-
-    const { owner, repo } = parseGithubUrl(repoUrl);
-    const commitData = await getCommitDetail(owner, repo, sha);
-
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-
-    // Send commit metadata first
-    res.write(`data: ${JSON.stringify({
-      type: 'metadata',
-      commit: commitData
-    })}\n\n`);
-
-    // Stream AI analysis
-    const stream = await streamCommitAnalysis(commitData, repo);
-
-    for await (const event of stream) {
-      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-        res.write(`data: ${JSON.stringify({
-          type: 'analysis_chunk',
-          text: event.delta.text
-        })}\n\n`);
-      }
-    }
-
-    res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
-    res.end();
-  } catch (error) {
-    console.error('Commit detail error:', error);
     if (!res.headersSent) {
       res.status(400).json({ error: error.message });
     } else {

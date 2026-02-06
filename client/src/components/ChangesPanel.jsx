@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import './ChangesPanel.css'
 import MarkdownRenderer from './MarkdownRenderer'
 
@@ -27,18 +27,10 @@ function ChangesPanel({ repoUrl }) {
   const [compareAnalysis, setCompareAnalysis] = useState('')
   const [isComparing, setIsComparing] = useState(false)
 
-  // Expanded commit detail
-  const [expandedCommit, setExpandedCommit] = useState(null)
-  const [commitDetail, setCommitDetail] = useState(null)
-  const [commitAnalysis, setCommitAnalysis] = useState('')
-  const [loadingCommitDetail, setLoadingCommitDetail] = useState(false)
-
   // Expanded file diffs
   const [expandedFiles, setExpandedFiles] = useState(new Set())
 
-  const analysisEndRef = useRef(null)
-
-  // Fetch commits on mount to populate the picker
+  // Fetch commits on mount
   useEffect(() => {
     if (!repoUrl) return
     fetchCommits()
@@ -77,14 +69,20 @@ function ChangesPanel({ repoUrl }) {
   }
 
   const handleCompare = async () => {
-    let base, head
+    let base, head, baseLabel, headLabel
 
     if (mode === 'date' && commits.length >= 2) {
       base = commits[commits.length - 1].sha
       head = commits[0].sha
+      baseLabel = `${commits[commits.length - 1].shortSha} (oldest)`
+      headLabel = `${commits[0].shortSha} (latest)`
     } else if (mode === 'commit' && baseCommit && headCommit) {
       base = baseCommit
       head = headCommit
+      const baseC = commits.find(c => c.sha === baseCommit)
+      const headC = commits.find(c => c.sha === headCommit)
+      baseLabel = baseC ? baseC.shortSha : base.substring(0, 7)
+      headLabel = headC ? headC.shortSha : head.substring(0, 7)
     } else {
       return
     }
@@ -92,14 +90,13 @@ function ChangesPanel({ repoUrl }) {
     setIsComparing(true)
     setCompareData(null)
     setCompareAnalysis('')
-    setExpandedCommit(null)
-    setCommitDetail(null)
+    setExpandedFiles(new Set())
 
     try {
       const response = await fetch(`${API_BASE_URL}/compare`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repoUrl, base, head })
+        body: JSON.stringify({ repoUrl, base, head, baseLabel, headLabel })
       })
 
       if (!response.ok) {
@@ -133,6 +130,8 @@ function ChangesPanel({ repoUrl }) {
             } else if (data.type === 'analysis_chunk') {
               analysisText += data.text
               setCompareAnalysis(analysisText)
+            } else if (data.type === 'error') {
+              setCompareAnalysis(`Error: ${data.message}`)
             }
           } catch (e) {
             // skip malformed
@@ -143,62 +142,6 @@ function ChangesPanel({ repoUrl }) {
       setCompareAnalysis(`Error: ${err.message}`)
     } finally {
       setIsComparing(false)
-    }
-  }
-
-  const handleCommitClick = async (sha) => {
-    if (expandedCommit === sha) {
-      setExpandedCommit(null)
-      setCommitDetail(null)
-      setCommitAnalysis('')
-      return
-    }
-
-    setExpandedCommit(sha)
-    setCommitDetail(null)
-    setCommitAnalysis('')
-    setLoadingCommitDetail(true)
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/commit-detail`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repoUrl, sha })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch commit detail')
-      }
-
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let analysisText = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        const text = decoder.decode(value)
-        const lines = text.split('\n').filter(line => line.startsWith('data: '))
-
-        for (const line of lines) {
-          try {
-            const data = JSON.parse(line.slice(6))
-            if (data.type === 'metadata') {
-              setCommitDetail(data.commit)
-            } else if (data.type === 'analysis_chunk') {
-              analysisText += data.text
-              setCommitAnalysis(analysisText)
-            }
-          } catch (e) {
-            // skip
-          }
-        }
-      }
-    } catch (err) {
-      setCommitAnalysis(`Error: ${err.message}`)
-    } finally {
-      setLoadingCommitDetail(false)
     }
   }
 
@@ -311,7 +254,7 @@ function ChangesPanel({ repoUrl }) {
           onClick={handleCompare}
           disabled={!canCompare || isComparing}
         >
-          {isComparing ? 'Comparing...' : 'Compare'}
+          {isComparing ? 'Analyzing Evolution...' : 'Compare Codebase'}
         </button>
       </div>
 
@@ -325,13 +268,13 @@ function ChangesPanel({ repoUrl }) {
             <span className="stat-item stat-deletions">-{compareData.deletions}</span>
           </div>
 
-          {/* AI Analysis */}
+          {/* AI Evolution Analysis */}
           <div className="compare-analysis">
-            <h4>AI Analysis</h4>
+            <h4>Codebase Evolution Analysis</h4>
             {isComparing && !compareAnalysis && (
               <div className="streaming-indicator">
                 <span className="pulse"></span>
-                Analyzing changes...
+                Comparing codebase snapshots...
               </div>
             )}
             {compareAnalysis && <MarkdownRenderer content={compareAnalysis} />}
@@ -348,7 +291,7 @@ function ChangesPanel({ repoUrl }) {
                   onClick={() => toggleFileExpand(file.filename)}
                 >
                   <span className={`file-status file-status-${file.status}`}>
-                    {file.status === 'added' ? 'A' : file.status === 'removed' ? 'D' : 'M'}
+                    {file.status === 'added' ? 'A' : file.status === 'removed' ? 'D' : file.status === 'renamed' ? 'R' : 'M'}
                   </span>
                   <span className="file-name">{file.filename}</span>
                   <span className="file-stats">
@@ -367,59 +310,13 @@ function ChangesPanel({ repoUrl }) {
           {/* Commits in Range */}
           {compareData.commits && compareData.commits.length > 0 && (
             <div className="commits-list">
-              <h4>Commits ({compareData.commits.length})</h4>
+              <h4>Commits in Range ({compareData.commits.length})</h4>
               {compareData.commits.map(commit => (
-                <div key={commit.sha}>
-                  <div
-                    className={`commit-row ${expandedCommit === commit.sha ? 'commit-row-expanded' : ''}`}
-                    onClick={() => handleCommitClick(commit.sha)}
-                  >
-                    <span className="commit-sha">{commit.shortSha}</span>
-                    <span className="commit-message">{commit.message}</span>
-                    <span className="commit-author">{commit.author}</span>
-                    <span className="commit-date">{new Date(commit.date).toLocaleDateString()}</span>
-                  </div>
-
-                  {expandedCommit === commit.sha && (
-                    <div className="commit-detail-panel">
-                      {loadingCommitDetail && !commitAnalysis && (
-                        <div className="streaming-indicator">
-                          <span className="pulse"></span>
-                          Analyzing commit...
-                        </div>
-                      )}
-                      {commitAnalysis && <MarkdownRenderer content={commitAnalysis} />}
-                      {loadingCommitDetail && commitAnalysis && <span className="chat-cursor" />}
-
-                      {commitDetail && commitDetail.files && (
-                        <div className="commit-files">
-                          {commitDetail.files.map(f => (
-                            <div key={f.filename} className="changed-file">
-                              <div
-                                className="changed-file-header"
-                                onClick={(e) => { e.stopPropagation(); toggleFileExpand(`commit-${commit.sha}-${f.filename}`) }}
-                              >
-                                <span className={`file-status file-status-${f.status}`}>
-                                  {f.status === 'added' ? 'A' : f.status === 'removed' ? 'D' : 'M'}
-                                </span>
-                                <span className="file-name">{f.filename}</span>
-                                <span className="file-stats">
-                                  <span className="stat-additions">+{f.additions}</span>
-                                  <span className="stat-deletions">-{f.deletions}</span>
-                                </span>
-                                <span className="file-expand">
-                                  {expandedFiles.has(`commit-${commit.sha}-${f.filename}`) ? '\u25B2' : '\u25BC'}
-                                </span>
-                              </div>
-                              {expandedFiles.has(`commit-${commit.sha}-${f.filename}`) && f.patch && (
-                                <pre className="file-diff">{f.patch}</pre>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                <div key={commit.sha} className="commit-row">
+                  <span className="commit-sha">{commit.shortSha}</span>
+                  <span className="commit-message">{commit.message}</span>
+                  <span className="commit-author">{commit.author}</span>
+                  <span className="commit-date">{new Date(commit.date).toLocaleDateString()}</span>
                 </div>
               ))}
             </div>
@@ -430,11 +327,9 @@ function ChangesPanel({ repoUrl }) {
       {/* Empty state */}
       {!compareData && !isComparing && (
         <div className="changes-empty">
-          <p>Select a date range or pick two commits to compare changes in this repository.</p>
+          <p>Select a date range or pick two commits to compare how the codebase evolved over time.</p>
         </div>
       )}
-
-      <div ref={analysisEndRef} />
     </div>
   )
 }
