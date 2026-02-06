@@ -15,6 +15,7 @@ function ChangesPanel({ repoUrl }) {
   const [mode, setMode] = useState('date')
   const [commits, setCommits] = useState([])
   const [loadingCommits, setLoadingCommits] = useState(false)
+  const [commitsError, setCommitsError] = useState('')
   const [selectedPreset, setSelectedPreset] = useState(null)
 
   // Commit mode
@@ -45,6 +46,7 @@ function ChangesPanel({ repoUrl }) {
 
   const fetchCommits = async (since) => {
     setLoadingCommits(true)
+    setCommitsError('')
     try {
       const params = new URLSearchParams({ repoUrl })
       if (since) params.append('since', since)
@@ -52,8 +54,16 @@ function ChangesPanel({ repoUrl }) {
 
       const response = await fetch(`${API_BASE_URL}/commits?${params}`)
       const data = await response.json()
-      if (data.success) setCommits(data.commits)
+      if (data.success) {
+        setCommits(data.commits)
+        if (data.commits.length === 0) {
+          setCommitsError('No commits found in this range.')
+        }
+      } else {
+        setCommitsError(data.error || 'Failed to load commits. You may need a GitHub token for higher rate limits.')
+      }
     } catch (err) {
+      setCommitsError('Failed to load commits. Check your connection.')
       console.error('Failed to fetch commits:', err)
     } finally {
       setLoadingCommits(false)
@@ -240,37 +250,59 @@ function ChangesPanel({ repoUrl }) {
         )}
 
         {mode === 'commit' && (
-          <div className="commit-selectors">
-            <div className="commit-select-group">
-              <label>Base (older)</label>
-              <select
-                value={baseCommit}
-                onChange={e => setBaseCommit(e.target.value)}
-                disabled={loadingCommits || isComparing}
-              >
-                <option value="">Select commit...</option>
-                {commits.map(c => (
-                  <option key={c.sha} value={c.sha}>
-                    {c.shortSha} - {c.message.substring(0, 50)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="commit-select-group">
-              <label>Head (newer)</label>
-              <select
-                value={headCommit}
-                onChange={e => setHeadCommit(e.target.value)}
-                disabled={loadingCommits || isComparing}
-              >
-                <option value="">Select commit...</option>
-                {commits.map(c => (
-                  <option key={c.sha} value={c.sha}>
-                    {c.shortSha} - {c.message.substring(0, 50)}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="commit-selectors-wrapper">
+            {loadingCommits && (
+              <div className="commits-loading">Loading commits...</div>
+            )}
+            {commitsError && (
+              <div className="commits-error">{commitsError}</div>
+            )}
+            {!loadingCommits && commits.length > 0 && (
+              <div className="commit-selectors">
+                <div className="commit-select-group">
+                  <label>Base (older)</label>
+                  <select
+                    value={baseCommit}
+                    onChange={e => setBaseCommit(e.target.value)}
+                    disabled={isComparing}
+                  >
+                    <option value="">Select commit...</option>
+                    {commits.map(c => (
+                      <option key={c.sha} value={c.sha}>
+                        {c.shortSha} - {c.message.substring(0, 50)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="commit-select-group">
+                  <label>Head (newer)</label>
+                  <select
+                    value={headCommit}
+                    onChange={e => setHeadCommit(e.target.value)}
+                    disabled={isComparing}
+                  >
+                    <option value="">Select commit...</option>
+                    {commits.map(c => (
+                      <option key={c.sha} value={c.sha}>
+                        {c.shortSha} - {c.message.substring(0, 50)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {mode === 'date' && loadingCommits && (
+          <div className="commits-loading">Loading commits...</div>
+        )}
+        {mode === 'date' && commitsError && (
+          <div className="commits-error">{commitsError}</div>
+        )}
+        {mode === 'date' && !loadingCommits && commits.length > 0 && (
+          <div className="commits-info">
+            Found {commits.length} commits in range
           </div>
         )}
 

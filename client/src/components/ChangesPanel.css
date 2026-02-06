@@ -113,6 +113,26 @@
   border-color: var(--color-primary);
 }
 
+.commits-loading {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+}
+
+.commits-error {
+  color: #ef4444;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.75rem;
+  background-color: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+}
+
+.commits-info {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
 .compare-btn {
   padding: 0.6rem 2rem;
   background-color: var(--color-primary);
