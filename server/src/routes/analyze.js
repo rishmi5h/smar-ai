@@ -24,7 +24,8 @@ import {
   streamArchitectureAnalysis,
   streamPRAnalysis,
   streamIssueAnalysis,
-  streamReadmeGeneration
+  streamReadmeGeneration,
+  streamPromptGeneration
 } from '../services/groqService.js';
 import {
   buildDependencyGraph,
@@ -429,6 +430,81 @@ analyzeRepoRoute.post('/readme', async (req, res) => {
     res.end();
   } catch (error) {
     console.error('README generation error:', error);
+    if (!res.headersSent) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+      res.end();
+    }
+  }
+});
+
+// Prompt generation endpoint
+analyzeRepoRoute.post('/generate-prompt', async (req, res) => {
+  try {
+    const { repoUrl, promptType = 'recreate', userInput = '' } = req.body;
+
+    if (!repoUrl) {
+      return res.status(400).json({ error: 'repoUrl is required' });
+    }
+
+    const { owner, repo } = parseGithubUrl(repoUrl);
+    const metadata = await getRepoMetadata(owner, repo);
+
+    let codeSnippets, fileTree, graph, mermaidDSL;
+
+    // Fetch the file tree for all prompt types
+    fileTree = await getRepoTree(owner, repo, metadata.defaultBranch);
+
+    if (promptType === 'recreate' || promptType === 'migrate') {
+      // Architecture-grade data for recreate and migrate
+      const { files: archFiles, branch } = await getArchitectureCodeFiles(owner, repo);
+      codeSnippets = await getArchitectureSnippets(owner, repo, archFiles, branch);
+      graph = buildDependencyGraph(codeSnippets);
+      mermaidDSL = generateMermaidDSL(graph);
+    } else {
+      // Standard data for feature and review
+      const { files } = await getRelevantCodeFiles(owner, repo);
+      const filePaths = files.map(f => f.path);
+      codeSnippets = await getCodeSnippets(owner, repo, filePaths);
+      graph = null;
+      mermaidDSL = '';
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // Send metadata
+    res.write(`data: ${JSON.stringify({
+      type: 'metadata',
+      promptType,
+      repository: {
+        name: metadata.name,
+        owner: metadata.owner,
+        language: metadata.language
+      },
+      filesAnalyzed: codeSnippets.length
+    })}\n\n`);
+
+    // Stream prompt generation
+    const stream = await streamPromptGeneration(
+      metadata, codeSnippets, fileTree, graph, mermaidDSL, promptType, userInput
+    );
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        res.write(`data: ${JSON.stringify({
+          type: 'analysis_chunk',
+          text: event.delta.text
+        })}\n\n`);
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error('Prompt generation error:', error);
     if (!res.headersSent) {
       res.status(400).json({ error: error.message });
     } else {

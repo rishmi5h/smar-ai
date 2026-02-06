@@ -602,6 +602,190 @@ Make it clean, professional, and ready to use. Use shields.io badge placeholders
   };
 };
 
+// Streaming prompt generation — generates copy-pasteable prompts for LLMs
+export const streamPromptGeneration = async (
+  metadata,
+  codeSnippets,
+  fileTree,
+  graph,
+  mermaidDSL,
+  promptType,
+  userInput,
+) => {
+  const snippetText = codeSnippets
+    .slice(0, 10)
+    .map((s) => {
+      const contentStr =
+        typeof s.content === "string" ? s.content : String(s.content);
+      return `## ${s.path}\n\`\`\`\n${contentStr.substring(0, 1200)}\n\`\`\``;
+    })
+    .join("\n\n");
+
+  const treeText = fileTree
+    .filter((item) => item.type === "blob")
+    .map((item) => item.path)
+    .slice(0, 100)
+    .join("\n");
+
+  const graphInfo =
+    graph && graph.nodes
+      ? `\nDependency Graph: ${graph.nodes.length} files, ${graph.edges.length} dependencies\nExternal Packages: ${(graph.externalDeps || []).join(", ") || "None"}\n\nEdges:\n${(graph.edges || []).map((e) => `  ${e.from} -> ${e.to}`).join("\n")}`
+      : "";
+
+  const mermaidBlock = mermaidDSL
+    ? `\nArchitecture Diagram:\n\`\`\`mermaid\n${mermaidDSL}\n\`\`\``
+    : "";
+
+  let systemPrompt = "";
+  let userPrompt = "";
+
+  if (promptType === "recreate") {
+    systemPrompt =
+      "You are a prompt engineering expert. Your task: analyze a codebase and produce a PROMPT that a developer can copy-paste into any LLM (Claude, ChatGPT, Cursor, Copilot) to recreate the same project from scratch. Output ONLY the prompt text itself. Make it complete, self-contained, and actionable. Use markdown formatting within the prompt. Be extremely specific about file structure, tech stack, implementation patterns, and build order.";
+
+    userPrompt = `Analyze this repository and generate a comprehensive "recreate this project" prompt.
+
+Repository: ${metadata.name}
+Owner: ${metadata.owner}
+Language: ${metadata.language || "Unknown"}
+Description: ${metadata.description || "No description"}
+Topics: ${(metadata.topics || []).join(", ") || "None"}
+
+File Tree:
+${treeText}
+${graphInfo}
+${mermaidBlock}
+
+Code Samples:
+${snippetText}
+
+Generate a prompt that includes:
+1. Project title and purpose
+2. Complete tech stack with specific packages
+3. Directory structure to create
+4. Step-by-step build order (what to implement first, second, etc.)
+5. Key implementation details for each major file/module (reference actual patterns from the code)
+6. Data flow description
+7. External dependencies and what each is used for
+8. Configuration and environment setup
+9. Any important design patterns or conventions to follow
+
+The prompt should be detailed enough that an LLM can produce working code without seeing the original repository.`;
+  } else if (promptType === "feature") {
+    systemPrompt =
+      "You are a prompt engineering expert. Your task: analyze a codebase's conventions and patterns, then produce a PROMPT that tells an LLM how to add a specific feature following those conventions. Output ONLY the prompt text. The prompt should specify exact file names, naming patterns, existing utilities to reuse, and step-by-step wiring instructions.";
+
+    userPrompt = `Analyze this repository's conventions and generate a prompt for adding this feature: "${userInput}"
+
+Repository: ${metadata.name}
+Language: ${metadata.language || "Unknown"}
+Description: ${metadata.description || "No description"}
+
+File Tree:
+${treeText}
+
+Code Samples (showing existing patterns):
+${snippetText}
+
+Generate a prompt that includes:
+1. Which new files to create (following the existing naming conventions)
+2. Which existing files to modify
+3. What existing patterns, utilities, or components to reuse
+4. Step-by-step implementation plan
+5. How to wire the new feature into the existing codebase (routes, imports, UI integration)
+6. Any state management or data flow considerations
+7. Suggested testing approach
+
+The prompt should make the LLM produce code that looks like it was written by the same developer who built the original project.`;
+  } else if (promptType === "review") {
+    systemPrompt =
+      "You are a prompt engineering expert. Your task: analyze a codebase and generate a PROMPT optimized for getting a thorough, actionable code review from any LLM. Output ONLY the prompt text. Include project context so the reviewing LLM understands what it's looking at, and specific focus areas derived from the actual code patterns.";
+
+    userPrompt = `Analyze this repository and generate a code review prompt.
+
+Repository: ${metadata.name}
+Language: ${metadata.language || "Unknown"}
+Description: ${metadata.description || "No description"}
+
+File Tree:
+${treeText}
+
+Code Samples:
+${snippetText}
+
+Generate a code review prompt that includes:
+1. Project description and context for the reviewer
+2. The tech stack and architectural approach
+3. Specific areas to focus the review on (derived from patterns you see in the code)
+4. Checklist of what to evaluate: error handling, security vulnerabilities, performance bottlenecks, code duplication, naming consistency, testing gaps, dependency concerns
+5. Questions for the reviewer to answer about architecture decisions
+6. Format instructions for the review output (severity levels, actionable suggestions)
+
+The prompt should produce a review that is genuinely useful, not generic boilerplate.`;
+  } else if (promptType === "migrate") {
+    systemPrompt =
+      "You are a prompt engineering expert specializing in code migrations. Your task: analyze a codebase and generate a PROMPT that guides an LLM through converting it to a different tech stack. Output ONLY the prompt text. Include current-to-target pattern mapping, file-by-file strategy, and migration-specific gotchas.";
+
+    userPrompt = `Analyze this repository and generate a migration prompt to convert it to: "${userInput}"
+
+Repository: ${metadata.name}
+Language: ${metadata.language || "Unknown"}
+Description: ${metadata.description || "No description"}
+
+File Tree:
+${treeText}
+${graphInfo}
+${mermaidBlock}
+
+Code Samples:
+${snippetText}
+
+Generate a migration prompt that includes:
+1. Current architecture summary (what exists now)
+2. Target architecture (what it should look like after migration)
+3. Pattern mapping: current pattern → equivalent in target
+4. File-by-file migration strategy (which files change, which are new, which are deleted)
+5. Dependency replacements (current package → target equivalent)
+6. Configuration changes needed
+7. Known gotchas and breaking changes for this specific migration
+8. Suggested migration order (what to migrate first for least breakage)
+9. Testing strategy to verify the migration works
+
+The prompt should produce a complete, working migration — not just a theoretical plan.`;
+  }
+
+  return {
+    [Symbol.asyncIterator]: async function* () {
+      try {
+        const stream = await groq.chat.completions.create({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          model: GROQ_MODEL,
+          temperature: 0.7,
+          stream: true,
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content;
+          if (content) {
+            yield {
+              type: "content_block_delta",
+              delta: { type: "text_delta", text: content },
+            };
+          }
+        }
+      } catch (error) {
+        console.error("Groq prompt generation streaming error:", error.message);
+        throw new Error(
+          `Groq prompt generation streaming failed: ${error.message}`,
+        );
+      }
+    },
+  };
+};
+
 // Streaming version for real-time analysis
 export const streamCodeAnalysis = async (
   metadata,

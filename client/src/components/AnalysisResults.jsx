@@ -4,6 +4,7 @@ import MarkdownRenderer from './MarkdownRenderer'
 import ChangesPanel from './ChangesPanel'
 import ArchitecturePanel from './ArchitecturePanel'
 import ReadmePanel from './ReadmePanel'
+import PromptPanel from './PromptPanel'
 
 function AnalysisResults({ results, loading, repoUrl }) {
   const [copied, setCopied] = useState(false)
@@ -123,6 +124,12 @@ function AnalysisResults({ results, loading, repoUrl }) {
         >
           README
         </button>
+        <button
+          className={`results-tab ${activeTab === 'prompts' ? 'results-tab-active' : ''}`}
+          onClick={() => setActiveTab('prompts')}
+        >
+          Prompts
+        </button>
       </div>
 
       {activeTab === 'analysis' && (
@@ -152,6 +159,12 @@ function AnalysisResults({ results, loading, repoUrl }) {
       {activeTab === 'readme' && (
         <div className="analysis-content">
           <ReadmePanel repoUrl={repoUrl} />
+        </div>
+      )}
+
+      {activeTab === 'prompts' && (
+        <div className="analysis-content">
+          <PromptPanel repoUrl={repoUrl} />
         </div>
       )}
 
