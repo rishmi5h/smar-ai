@@ -36,10 +36,7 @@ export const getRepoMetadata = async (owner, repo) => {
       headers: getHeaders()
     });
 
-    const {
-      description, language, stargazers_count, topics, default_branch,
-      forks_count, open_issues_count, license, pushed_at, created_at
-    } = response.data;
+    const { description, language, stargazers_count, topics, default_branch } = response.data;
 
     return {
       name: repo,
@@ -48,12 +45,7 @@ export const getRepoMetadata = async (owner, repo) => {
       language,
       stars: stargazers_count,
       topics: topics || [],
-      defaultBranch: default_branch,
-      forks: forks_count,
-      openIssues: open_issues_count,
-      license: license ? license.spdx_id : null,
-      pushedAt: pushed_at,
-      createdAt: created_at
+      defaultBranch: default_branch
     };
   } catch (error) {
     throw new Error(`Failed to fetch repository metadata: ${error.message}`);
@@ -168,38 +160,4 @@ export const getCodeSnippets = async (owner, repo, filePaths) => {
   }
 
   return snippets;
-};
-
-// Check if repository has any releases
-export const getRepoReleases = async (owner, repo) => {
-  try {
-    const response = await axios.get(
-      `${GITHUB_API_BASE}/repos/${owner}/${repo}/releases?per_page=1`,
-      { headers: getHeaders() }
-    );
-    return response.data.length > 0;
-  } catch {
-    return false;
-  }
-};
-
-// Get recent commit activity
-export const getRepoCommitsRecent = async (owner, repo) => {
-  try {
-    const response = await axios.get(
-      `${GITHUB_API_BASE}/repos/${owner}/${repo}/commits?per_page=5`,
-      { headers: getHeaders() }
-    );
-    const commits = response.data;
-    if (commits.length === 0) return { hasRecentCommits: false, daysSinceLastCommit: null };
-
-    const lastDate = commits[0].commit.committer.date;
-    const daysSince = Math.floor((Date.now() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24));
-    return {
-      hasRecentCommits: daysSince < 180,
-      daysSinceLastCommit: daysSince
-    };
-  } catch {
-    return { hasRecentCommits: false, daysSinceLastCommit: null };
-  }
 };

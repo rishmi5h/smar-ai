@@ -5,7 +5,6 @@ import SearchBar from './SearchBar'
 import AnalysisResults from './AnalysisResults'
 import LoadingSpinner from './LoadingSpinner'
 import ChatPanel from './ChatPanel'
-import HealthScore from './HealthScore'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
@@ -161,10 +160,6 @@ function RepoAnalyzer() {
           )}
 
           {loading && !results && <LoadingSpinner />}
-
-          {results && (
-            <HealthScore repoUrl={repoUrl} />
-          )}
 
           {results && (
             <AnalysisResults
