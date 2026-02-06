@@ -3,8 +3,12 @@ import {
   parseGithubUrl,
   getRepoMetadata,
   getRelevantCodeFiles,
-  getCodeSnippets
+  getCodeSnippets,
+  getRepoTree,
+  getRepoReleases,
+  getRepoCommitsRecent
 } from '../services/githubService.js';
+import { computeHealthScore } from '../services/healthScoreService.js';
 import {
   generateCodeOverview,
   generateCodeExplanation,
@@ -183,6 +187,40 @@ analyzeRepoRoute.post('/chat', async (req, res) => {
       res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
       res.end();
     }
+  }
+});
+
+// Repository health score endpoint
+analyzeRepoRoute.get('/health-score', async (req, res) => {
+  try {
+    const { repoUrl } = req.query;
+
+    if (!repoUrl) {
+      return res.status(400).json({ error: 'repoUrl is required as query parameter' });
+    }
+
+    const { owner, repo } = parseGithubUrl(repoUrl);
+    const metadata = await getRepoMetadata(owner, repo);
+
+    const [tree, hasReleases, commitInfo] = await Promise.all([
+      getRepoTree(owner, repo, metadata.defaultBranch),
+      getRepoReleases(owner, repo),
+      getRepoCommitsRecent(owner, repo)
+    ]);
+
+    const healthScore = computeHealthScore(metadata, tree, hasReleases, commitInfo);
+
+    res.json({
+      success: true,
+      healthScore,
+      repository: {
+        name: metadata.name,
+        owner: metadata.owner
+      }
+    });
+  } catch (error) {
+    console.error('Health score error:', error);
+    res.status(400).json({ error: error.message });
   }
 });
 
