@@ -5,13 +5,13 @@
 ![License](https://img.shields.io/badge/License-ISC-blue.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-v20%2B-brightgreen)
 ![React](https://img.shields.io/badge/React-19-blue)
-![Ollama](https://img.shields.io/badge/Ollama-LLM-orange)
+![Groq](https://img.shields.io/badge/Groq-LLM-orange)
 
 **Live app:** https://smarai.rishmi5h.com
 
 ## What is smar-ai?
 
-smar-ai is an intelligent code analyzer that uses **Ollama** (free, local LLM) to understand and explain GitHub repositories. Instead of spending hours reading through code, get a comprehensive analysis in seconds using local AI models.
+smar-ai is an intelligent code analyzer that uses **Groq** for fast AI-powered inference to understand and explain GitHub repositories. Instead of spending hours reading through code, get a comprehensive analysis in seconds.
 
 ### Key Features
 
@@ -22,7 +22,7 @@ smar-ai is an intelligent code analyzer that uses **Ollama** (free, local LLM) t
 - 📥 **Export Options** - Copy or download analysis as markdown
 - 🔗 **Easy to Use** - Just paste a GitHub URL
 - 🚀 **Multiple Deployment Options** - Docker, Railway + Netlify, or VPS
-- 🆓 **Free to Use** - Powered by open-source Ollama models
+- 🆓 **Free to Use** - Powered by Groq's fast inference API
 
 ## Quick Start
 

@@ -68,7 +68,7 @@ analyzeRepoRoute.post('/analyze', async (req, res) => {
     console.error('Analysis error:', error);
     res.status(400).json({
       error: error.message,
-      details: 'Make sure Ollama is running and valid GitHub URL is provided'
+      details: 'Make sure GROQ_API_KEY is set and a valid GitHub URL is provided'
     });
   }
 });

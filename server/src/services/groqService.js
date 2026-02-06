@@ -21,6 +21,11 @@ const callGroq = async (prompt, maxTokens = 2000) => {
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
+          role: "system",
+          content:
+            "You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub repositories and help developers understand codebases. You are powered by Groq.",
+        },
+        {
           role: "user",
           content: prompt,
         },
@@ -155,7 +160,7 @@ export const streamChatResponse = async (
     })
     .join("\n");
 
-  const systemPrompt = `You are a knowledgeable code assistant helping a user understand a GitHub repository. Answer questions based on the repository context provided below. Be concise, specific, and reference actual file names and code when relevant.
+  const systemPrompt = `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h and powered by Groq. You help users understand GitHub repositories. Answer questions based on the repository context provided below. Be concise, specific, and reference actual file names and code when relevant.
 
 Repository: ${metadata.name}
 Language: ${metadata.language || "Unknown"}
@@ -247,6 +252,11 @@ Create a comprehensive learning guide with prerequisites, learning path, and han
       try {
         const stream = await groq.chat.completions.create({
           messages: [
+            {
+              role: "system",
+              content:
+                "You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub repositories and help developers understand codebases. You are powered by Groq.",
+            },
             {
               role: "user",
               content: prompt,
