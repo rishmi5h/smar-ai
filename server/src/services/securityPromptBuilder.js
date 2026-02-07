@@ -22,10 +22,10 @@ export const buildSecurityPrompt = (metadata, codeSnippets, prescanResults, depA
   const prioritized = prioritizeSecurityFiles(codeSnippets);
 
   const snippetText = prioritized
-    .slice(0, 12)
+    .slice(0, 20)
     .map(s => {
       const contentStr = typeof s.content === 'string' ? s.content : String(s.content);
-      return `## ${s.path}\n\`\`\`\n${contentStr.substring(0, 1500)}\n\`\`\``;
+      return `## ${s.path}\n\`\`\`\n${contentStr.substring(0, 2000)}\n\`\`\``;
     })
     .join('\n\n');
 

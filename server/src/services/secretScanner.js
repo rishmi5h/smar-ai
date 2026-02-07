@@ -117,7 +117,7 @@ const VULN_PATTERNS = [
     id: 'sql-string-concat',
     name: 'SQL String Concatenation',
     severity: 'high',
-    regex: /(?:query|execute|exec)\s*\(\s*['"`](?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\b[^'"`]*\+/gi,
+    regex: /(?:query|execute|exec)\s*\(\s*['"`]?\s*(?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\b[^)]*\+/gi,
     category: 'sql-injection',
     owasp: 'A03:2021-Injection'
   },
@@ -125,7 +125,7 @@ const VULN_PATTERNS = [
     id: 'cors-wildcard',
     name: 'CORS Wildcard Origin',
     severity: 'medium',
-    regex: /Access-Control-Allow-Origin['":\s]*['"]\*/g,
+    regex: /Access-Control-Allow-Origin.*?['"]\s*\*/g,
     category: 'misconfiguration',
     owasp: 'A05:2021-Security Misconfiguration'
   },

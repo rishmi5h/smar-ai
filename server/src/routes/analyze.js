@@ -649,7 +649,7 @@ analyzeRepoRoute.post('/security-scan', async (req, res) => {
     const metadata = await getRepoMetadata(owner, repo);
 
     // Fetch code files for security scanning (broader scope, more files)
-    const { files } = await getSecurityScanFiles(owner, repo);
+    const { files, totalRelevantFiles } = await getSecurityScanFiles(owner, repo);
     const filePaths = files.map(f => f.path);
     const codeSnippets = await getSecurityCodeSnippets(owner, repo, filePaths);
 

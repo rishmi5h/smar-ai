@@ -224,29 +224,39 @@ export const getSecurityScanFiles = async (owner, repo) => {
 
     scored.sort((a, b) => b.score - a.score);
 
-    return { files: scored.slice(0, 40), branch };
+    // Keep top 80 candidates (fetching will be limited separately)
+    return { files: scored.slice(0, 80), branch, totalRelevantFiles: relevantFiles.length };
   } catch (error) {
     throw new Error(`Failed to get security scan files: ${error.message}`);
   }
 };
 
-// Get code snippets for security scanning — higher limits than regular getCodeSnippets
+// Get code snippets for security scanning — fetches in parallel batches for speed
 export const getSecurityCodeSnippets = async (owner, repo, filePaths) => {
   const metadata = await getRepoMetadata(owner, repo);
   const branch = metadata.defaultBranch;
 
+  // Fetch up to 50 files in parallel batches of 10
+  const pathsToFetch = filePaths.slice(0, 50);
+  const batchSize = 10;
   const snippets = [];
 
-  for (const filePath of filePaths.slice(0, 30)) {
-    try {
-      const content = await getFileContent(owner, repo, filePath, branch);
-      const contentStr = typeof content === 'string' ? content : (typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content));
-      snippets.push({
-        path: filePath,
-        content: contentStr.substring(0, 8000)
-      });
-    } catch (error) {
-      console.log(`Could not fetch ${filePath}: ${error.message}`);
+  for (let i = 0; i < pathsToFetch.length; i += batchSize) {
+    const batch = pathsToFetch.slice(i, i + batchSize);
+    const results = await Promise.allSettled(
+      batch.map(async (filePath) => {
+        const content = await getFileContent(owner, repo, filePath, branch);
+        const contentStr = typeof content === 'string'
+          ? content
+          : (typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content));
+        return { path: filePath, content: contentStr.substring(0, 8000) };
+      })
+    );
+
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        snippets.push(result.value);
+      }
     }
   }
 
