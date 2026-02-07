@@ -98,10 +98,10 @@ function SearchBar({
             <button
               type="button"
               className="example-inline-btn"
-              onClick={() => handleExample('https://github.com/vercel/next.js')}
+              onClick={() => handleExample('https://github.com/microsoft/graphrag')}
               disabled={loading}
             >
-              Next.js
+              GraphRAG
             </button>
             <button
               type="button"
