@@ -12,7 +12,9 @@ import {
   getPRDetails,
   getIssueDetails,
   getArchitectureCodeFiles,
-  getArchitectureSnippets
+  getArchitectureSnippets,
+  getSecurityScanFiles,
+  getSecurityCodeSnippets
 } from '../services/githubService.js';
 import {
   generateCodeOverview,
@@ -25,12 +27,16 @@ import {
   streamPRAnalysis,
   streamIssueAnalysis,
   streamReadmeGeneration,
-  streamPromptGeneration
+  streamPromptGeneration,
+  streamSecurityAnalysis
 } from '../services/groqService.js';
 import {
   buildDependencyGraph,
   generateMermaidDSL
 } from '../services/importParser.js';
+import { scanForSecrets } from '../services/secretScanner.js';
+import { auditDependencies } from '../services/dependencyAuditor.js';
+import { buildSecurityPrompt, computeSecurityScore } from '../services/securityPromptBuilder.js';
 
 export const analyzeRepoRoute = express.Router();
 
@@ -621,6 +627,95 @@ analyzeRepoRoute.post('/issue-analyze', async (req, res) => {
     res.end();
   } catch (error) {
     console.error('Issue analysis error:', error);
+    if (!res.headersSent) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+      res.end();
+    }
+  }
+});
+
+// Security Vulnerability Scanner endpoint
+analyzeRepoRoute.post('/security-scan', async (req, res) => {
+  try {
+    const { repoUrl } = req.body;
+
+    if (!repoUrl) {
+      return res.status(400).json({ error: 'repoUrl is required' });
+    }
+
+    const { owner, repo } = parseGithubUrl(repoUrl);
+    const metadata = await getRepoMetadata(owner, repo);
+
+    // Fetch code files for security scanning (broader scope, more files)
+    const { files } = await getSecurityScanFiles(owner, repo);
+    const filePaths = files.map(f => f.path);
+    const codeSnippets = await getSecurityCodeSnippets(owner, repo, filePaths);
+
+    // Set up SSE streaming
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // Send initial metadata
+    res.write(`data: ${JSON.stringify({
+      type: 'metadata',
+      repository: {
+        name: metadata.name,
+        owner: metadata.owner,
+        description: metadata.description,
+        language: metadata.language,
+        stars: metadata.stars
+      },
+      filesAnalyzed: codeSnippets.length
+    })}\n\n`);
+
+    // PASS 1: Secret & vulnerability pattern scan (instant)
+    const prescanResults = scanForSecrets(codeSnippets);
+    res.write(`data: ${JSON.stringify({
+      type: 'prescan_results',
+      secrets: prescanResults
+    })}\n\n`);
+
+    // PASS 2: Dependency vulnerability audit (async, API calls)
+    const depAuditResults = await auditDependencies(codeSnippets);
+    res.write(`data: ${JSON.stringify({
+      type: 'dependency_results',
+      dependencies: depAuditResults
+    })}\n\n`);
+
+    // Compute overall security score from Pass 1 + Pass 2
+    const overallScore = computeSecurityScore(prescanResults, depAuditResults);
+    res.write(`data: ${JSON.stringify({
+      type: 'score',
+      grade: overallScore.grade,
+      score: overallScore.numericScore,
+      breakdown: overallScore.breakdown
+    })}\n\n`);
+
+    // PASS 3: AI deep security analysis (streaming)
+    const { systemPrompt, userPrompt } = buildSecurityPrompt(
+      metadata, codeSnippets, prescanResults, depAuditResults
+    );
+    const stream = await streamSecurityAnalysis(systemPrompt, userPrompt);
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        res.write(`data: ${JSON.stringify({
+          type: 'analysis_chunk',
+          text: event.delta.text
+        })}\n\n`);
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({
+      type: 'complete',
+      timestamp: new Date().toISOString()
+    })}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error('Security scan error:', error);
     if (!res.headersSent) {
       res.status(400).json({ error: error.message });
     } else {

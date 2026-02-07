@@ -5,6 +5,7 @@ import ChangesPanel from './ChangesPanel'
 import ArchitecturePanel from './ArchitecturePanel'
 import ReadmePanel from './ReadmePanel'
 import PromptPanel from './PromptPanel'
+import SecurityPanel from './SecurityPanel'
 
 function AnalysisResults({ results, loading, repoUrl }) {
   const [copied, setCopied] = useState(false)
@@ -130,6 +131,12 @@ function AnalysisResults({ results, loading, repoUrl }) {
         >
           Prompts
         </button>
+        <button
+          className={`results-tab ${activeTab === 'security' ? 'results-tab-active' : ''}`}
+          onClick={() => setActiveTab('security')}
+        >
+          🛡️ Security
+        </button>
       </div>
 
       {activeTab === 'analysis' && (
@@ -165,6 +172,12 @@ function AnalysisResults({ results, loading, repoUrl }) {
       {activeTab === 'prompts' && (
         <div className="analysis-content">
           <PromptPanel repoUrl={repoUrl} />
+        </div>
+      )}
+
+      {activeTab === 'security' && (
+        <div className="analysis-content">
+          <SecurityPanel repoUrl={repoUrl} />
         </div>
       )}
 

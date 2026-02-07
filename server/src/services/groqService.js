@@ -786,6 +786,40 @@ The prompt should produce a complete, working migration — not just a theoretic
   };
 };
 
+// Streaming security analysis — accepts pre-built prompts from securityPromptBuilder
+export const streamSecurityAnalysis = async (systemPrompt, userPrompt) => {
+  return {
+    [Symbol.asyncIterator]: async function* () {
+      try {
+        const stream = await groq.chat.completions.create({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          model: GROQ_MODEL,
+          temperature: 0.3,
+          stream: true,
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content;
+          if (content) {
+            yield {
+              type: "content_block_delta",
+              delta: { type: "text_delta", text: content },
+            };
+          }
+        }
+      } catch (error) {
+        console.error("Groq security analysis streaming error:", error.message);
+        throw new Error(
+          `Groq security analysis streaming failed: ${error.message}`,
+        );
+      }
+    },
+  };
+};
+
 // Streaming version for real-time analysis
 export const streamCodeAnalysis = async (
   metadata,

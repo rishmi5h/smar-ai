@@ -144,6 +144,115 @@ export const getRelevantCodeFiles = async (owner, repo) => {
   }
 };
 
+// Get files specifically for security scanning — broader scope than getRelevantCodeFiles
+export const getSecurityScanFiles = async (owner, repo) => {
+  try {
+    let branch = 'main';
+    const metadata = await getRepoMetadata(owner, repo);
+    branch = metadata.defaultBranch;
+
+    const tree = await getRepoTree(owner, repo, branch);
+
+    // Security-relevant file extensions
+    const codeExtensions = [
+      '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs',
+      '.py', '.java', '.go', '.rs', '.cpp', '.c', '.rb', '.php',
+      '.json', '.yaml', '.yml', '.toml', '.lock',
+      '.env', '.env.example', '.env.local', '.env.production',
+      '.cfg', '.ini', '.conf', '.config'
+    ];
+
+    // Manifest filenames we must always include
+    const manifestNames = [
+      'package.json', 'package-lock.json',
+      'requirements.txt', 'Pipfile', 'setup.py', 'pyproject.toml',
+      'go.mod', 'go.sum',
+      'Cargo.toml', 'Gemfile', 'composer.json', 'pom.xml'
+    ];
+
+    // Security-priority keywords in file paths
+    const securityKeywords = [
+      'auth', 'login', 'session', 'middleware', 'config', 'env',
+      'password', 'token', 'api', 'route', 'controller', 'guard',
+      'permission', 'role', 'secret', 'crypto', 'hash', 'sanitize',
+      'validate', 'cors', 'helmet', 'csrf', 'security', 'database',
+      'db', 'firebase', 'supabase', 'prisma', 'docker', 'nginx'
+    ];
+
+    const allFiles = tree.filter(item => item.type === 'blob');
+
+    const relevantFiles = allFiles.filter(item => {
+      // Skip node_modules, vendor, dist, build dirs
+      if (/\/(node_modules|vendor|dist|build|\.git)\//i.test(item.path)) return false;
+
+      // Always include manifests
+      const filename = item.path.split('/').pop();
+      if (manifestNames.includes(filename)) return true;
+
+      // Include Dockerfiles and CI configs
+      if (filename === 'Dockerfile' || filename === '.dockerignore') return true;
+      if (filename === '.gitignore' || filename === '.npmrc') return true;
+      if (/\.(env|env\..*)$/.test(filename)) return true;
+
+      // Include by extension
+      return codeExtensions.some(e => item.path.endsWith(e));
+    });
+
+    // Score and sort by security relevance
+    const scored = relevantFiles.map(file => {
+      const pathLower = file.path.toLowerCase();
+      let score = 0;
+
+      // Manifests get highest priority
+      const filename = file.path.split('/').pop();
+      if (manifestNames.includes(filename)) score += 100;
+
+      // Security keyword matches
+      score += securityKeywords.filter(kw => pathLower.includes(kw)).length * 10;
+
+      // .env files are critical
+      if (/\.env/.test(filename)) score += 50;
+
+      // Config files
+      if (/config|setting/i.test(pathLower)) score += 20;
+
+      // Root-level files
+      if (!file.path.includes('/')) score += 5;
+
+      return { ...file, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+
+    return { files: scored.slice(0, 40), branch };
+  } catch (error) {
+    throw new Error(`Failed to get security scan files: ${error.message}`);
+  }
+};
+
+// Get code snippets for security scanning — higher limits than regular getCodeSnippets
+export const getSecurityCodeSnippets = async (owner, repo, filePaths) => {
+  const metadata = await getRepoMetadata(owner, repo);
+  const branch = metadata.defaultBranch;
+
+  const snippets = [];
+
+  for (const filePath of filePaths.slice(0, 30)) {
+    try {
+      const content = await getFileContent(owner, repo, filePath, branch);
+      const contentStr = typeof content === 'string' ? content : (typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content));
+      snippets.push({
+        path: filePath,
+        content: contentStr.substring(0, 8000)
+      });
+    } catch (error) {
+      console.log(`Could not fetch ${filePath}: ${error.message}`);
+    }
+  }
+
+  return snippets;
+};
+
 // Get code snippets from repository
 export const getCodeSnippets = async (owner, repo, filePaths) => {
   const metadata = await getRepoMetadata(owner, repo);
