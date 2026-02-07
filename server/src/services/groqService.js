@@ -786,6 +786,58 @@ The prompt should produce a complete, working migration — not just a theoretic
   };
 };
 
+// Generate structured inline review comments (non-streaming, JSON output)
+export const generateInlineReviewComments = async (prompt) => {
+  try {
+    console.log(`Calling Groq for inline review: ${GROQ_MODEL}`);
+
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are smar-ai, an expert AI code reviewer. You analyze pull request diffs and return structured JSON review comments. Always return valid JSON arrays. Never include markdown fences or extra text around the JSON.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      model: GROQ_MODEL,
+      max_completion_tokens: 4000,
+      temperature: 0.3,
+    });
+
+    const raw = chatCompletion.choices[0]?.message?.content || "[]";
+
+    // Parse JSON — handle cases where the model wraps in markdown fences
+    let cleaned = raw.trim();
+    if (cleaned.startsWith("```")) {
+      cleaned = cleaned.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    }
+
+    try {
+      const comments = JSON.parse(cleaned);
+      if (!Array.isArray(comments)) return [];
+      return comments.filter(
+        (c) => c.file && c.line && c.comment && c.severity,
+      );
+    } catch {
+      console.error(
+        "Failed to parse AI review response as JSON:",
+        cleaned.substring(0, 200),
+      );
+      return [];
+    }
+  } catch (error) {
+    console.error("Groq inline review error:", {
+      message: error.message,
+      status: error.status,
+    });
+    throw new Error(`Groq inline review failed: ${error.message}`);
+  }
+};
+
 // Streaming version for real-time analysis
 export const streamCodeAnalysis = async (
   metadata,

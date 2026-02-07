@@ -9,11 +9,11 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 const GITHUB_API_BASE = 'https://api.github.com';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
-// Helper to get GitHub API headers
-const getHeaders = () => ({
+// Helper to get GitHub API headers (optionally accepts a token for GitHub App auth)
+const getHeaders = (token = null) => ({
   'Accept': 'application/vnd.github.v3.raw',
   'User-Agent': 'smar-ai',
-  ...(GITHUB_TOKEN && { 'Authorization': `token ${GITHUB_TOKEN}` })
+  ...((token || GITHUB_TOKEN) && { 'Authorization': `token ${token || GITHUB_TOKEN}` })
 });
 
 // Extract owner and repo from GitHub URL or string
@@ -247,24 +247,19 @@ export const parseGithubPrOrIssueUrl = (url) => {
 };
 
 // Get PR details including files, reviews, and comments
-export const getPRDetails = async (owner, repo, prNumber) => {
+// Accepts optional token for GitHub App installation auth
+export const getPRDetails = async (owner, repo, prNumber, token = null) => {
   try {
+    const headers = { ...getHeaders(token), 'Accept': 'application/vnd.github.v3+json' };
+
     const [prResponse, filesResponse] = await Promise.all([
-      axios.get(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}`, {
-        headers: { ...getHeaders(), 'Accept': 'application/vnd.github.v3+json' }
-      }),
-      axios.get(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}/files`, {
-        headers: { ...getHeaders(), 'Accept': 'application/vnd.github.v3+json' }
-      })
+      axios.get(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}`, { headers }),
+      axios.get(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}/files`, { headers })
     ]);
 
     const [reviewsResponse, commentsResponse] = await Promise.all([
-      axios.get(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}/reviews`, {
-        headers: { ...getHeaders(), 'Accept': 'application/vnd.github.v3+json' }
-      }).catch(() => ({ data: [] })),
-      axios.get(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}/comments`, {
-        headers: { ...getHeaders(), 'Accept': 'application/vnd.github.v3+json' }
-      }).catch(() => ({ data: [] }))
+      axios.get(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}/reviews`, { headers }).catch(() => ({ data: [] })),
+      axios.get(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}/comments`, { headers }).catch(() => ({ data: [] }))
     ]);
 
     const pr = prResponse.data;

@@ -1,6 +1,42 @@
 version: '3.8'
 
 services:
+  # Redis (for BullMQ job queue)
+  redis:
+    image: redis:7-alpine
+    container_name: smar-ai-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - smar-ai-network
+
+  # PostgreSQL (for bot installations, configs, review jobs)
+  postgres:
+    image: postgres:16-alpine
+    container_name: smar-ai-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: smar_ai
+      POSTGRES_USER: smar_ai
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smar_ai_dev}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smar_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - smar-ai-network
+
   # Backend API
   backend:
     build:
@@ -9,12 +45,24 @@ services:
     container_name: smar-ai-backend
     ports:
       - "5050:5050"
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     environment:
       PORT: 5050
       NODE_ENV: production
       GROQ_API_KEY: ${GROQ_API_KEY}
       GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GITHUB_APP_ID: ${GITHUB_APP_ID:-}
+      GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY:-}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+      GITHUB_APP_CLIENT_ID: ${GITHUB_APP_CLIENT_ID:-}
+      GITHUB_APP_CLIENT_SECRET: ${GITHUB_APP_CLIENT_SECRET:-}
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://smar_ai:${POSTGRES_PASSWORD:-smar_ai_dev}@postgres:5432/smar_ai
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5050/api/health || exit 1"]
       interval: 30s
@@ -38,6 +86,9 @@ services:
     restart: unless-stopped
     networks:
       - smar-ai-network
+
+volumes:
+  pgdata:
 
 networks:
   smar-ai-network:
