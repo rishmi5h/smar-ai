@@ -1,3 +1,8 @@
+// DEPRECATED: This file is superseded by llmProvider.js which uses the groq-sdk
+// pointed at Ollama's OpenAI-compatible endpoint (/v1/chat/completions).
+// Set LLM_PROVIDER=ollama in .env to use Ollama via the unified provider.
+// This file only had 4 of 12 functions. The new approach supports all features.
+
 import axios from 'axios';
 
 const OLLAMA_API_BASE = process.env.OLLAMA_API_URL || 'http://localhost:11434/api';

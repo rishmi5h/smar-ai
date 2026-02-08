@@ -1,29 +1,26 @@
-import dotenv from "dotenv";
-import path from "path";
-import { fileURLToPath } from "url";
+import {
+  client as groq,
+  model as GROQ_MODEL,
+  providerName,
+} from "./llmProvider.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, "../../.env") });
-
-import Groq from "groq-sdk";
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
-const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+// Strip <think>...</think> reasoning traces from Ollama models
+const stripThinkTags = (text) => {
+  if (!text) return text;
+  return text.replace(/<think>[\s\S]*?<\/think>/g, "").replace(/<think>[\s\S]*/g, "");
+};
 
 // Helper function to call Groq API
 const callGroq = async (prompt, maxTokens = 2000) => {
   try {
-    console.log(`Calling Groq: ${GROQ_MODEL}`);
+    console.log(`Calling ${providerName}: ${GROQ_MODEL}`);
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
           role: "system",
           content:
-            "You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub repositories and help developers understand codebases. You are powered by Groq.",
+            `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub repositories and help developers understand codebases. You are powered by ${providerName}.`,
         },
         {
           role: "user",
@@ -152,6 +149,7 @@ export const streamEvolutionAnalysis = async (
   compareStats,
   baseLabel,
   headLabel,
+  context = {},
 ) => {
   const formatSnippets = (snippets) =>
     snippets
@@ -162,12 +160,48 @@ export const streamEvolutionAnalysis = async (
       })
       .join("\n\n");
 
+  // Build context sections from changelog, contributors, impact graph
+  let contextSections = "";
+
+  if (context.changelog) {
+    const cl = context.changelog;
+    const sectionSummary = cl.sections
+      .filter((s) => s.items.length > 0)
+      .map((s) => `- ${s.title}: ${s.items.length} changes`)
+      .join("\n");
+    contextSections += `\n### CHANGELOG SUMMARY:\n${sectionSummary}\n`;
+
+    if (cl.breakingChanges && cl.breakingChanges.length > 0) {
+      contextSections += `\n### ⚠️ BREAKING CHANGES DETECTED:\n`;
+      cl.breakingChanges.forEach((bc) => {
+        contextSections += `- [${bc.severity}] ${bc.file}: ${bc.description}\n`;
+      });
+    }
+  }
+
+  if (context.contributors) {
+    const contrib = context.contributors;
+    const authorSummary = contrib.authors
+      .slice(0, 5)
+      .map(
+        (a) =>
+          `- ${a.name}: ${a.commits} commits (${a.percentage}%), ~+${a.additions}/-${a.deletions}`,
+      )
+      .join("\n");
+    contextSections += `\n### CONTRIBUTOR BREAKDOWN:\n${authorSummary}\n`;
+  }
+
+  if (context.impactGraph) {
+    const ig = context.impactGraph;
+    contextSections += `\n### IMPACT ANALYSIS:\n- ${ig.stats.directChanges} files changed directly\n- ${ig.stats.rippleAffected} files affected downstream (ripple effect)\n- ${ig.stats.connections} dependency connections between changed files\n`;
+  }
+
   const prompt = `Compare how the codebase of "${repoName}" evolved between two points in time.
 
 **From:** ${baseLabel}
 **To:** ${headLabel}
 **Stats:** ${compareStats.totalCommits} commits, ${compareStats.filesChanged} files changed, +${compareStats.additions} additions, -${compareStats.deletions} deletions
-
+${contextSections}
 ---
 
 ### CODEBASE AT "${baseLabel}":
@@ -180,15 +214,18 @@ ${formatSnippets(headSnippets)}
 
 ---
 
-Analyze how the codebase evolved:
-1. **Evolution Summary** - What changed at a high level between these two snapshots
-2. **New Features / Components** - What was added that didn't exist before
-3. **Modified Areas** - What existing code was changed and how
-4. **Removed / Replaced** - What was removed or replaced
-5. **Architecture Changes** - Any structural or pattern changes
-6. **Quality Assessment** - Did the codebase improve, and in what ways
+Provide a comprehensive evolution analysis with these sections:
 
-Be specific, reference actual filenames, and explain the "why" behind changes.`;
+1. **Executive Summary** — 2-3 sentence overview of the most important changes
+2. **Breaking Changes** — Any breaking changes, API removals, renamed exports, deleted public files. If none detected, say "No breaking changes detected."
+3. **New Features & Additions** — What was added that didn't exist before, with file references
+4. **Bug Fixes & Patches** — What was fixed, referencing commit messages and files
+5. **Refactoring & Improvements** — Code quality improvements, restructuring, pattern changes
+6. **Architecture Impact** — How do these changes affect the overall system architecture? Note any ripple effects on downstream files.
+7. **Risk Assessment** — Rate overall risk (Low/Medium/High) and explain. Consider: breaking changes, security implications, test coverage gaps, complexity increases.
+8. **Recommendations** — Actionable suggestions: what to test, what to review, what to document.
+
+Be specific, reference actual filenames, explain the "why" behind changes, and use markdown formatting with headers and bullet points.`;
 
   return {
     [Symbol.asyncIterator]: async function* () {
@@ -198,7 +235,7 @@ Be specific, reference actual filenames, and explain the "why" behind changes.`;
             {
               role: "system",
               content:
-                "You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub repositories and help developers understand codebases. You are powered by Groq.",
+                `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You provide detailed, actionable codebase evolution analysis. You identify breaking changes, assess risk, and give clear recommendations. You are powered by ${providerName}.`,
             },
             {
               role: "user",
@@ -211,7 +248,8 @@ Be specific, reference actual filenames, and explain the "why" behind changes.`;
         });
 
         for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content;
+          const rawContent = chunk.choices[0]?.delta?.content;
+          const content = stripThinkTags(rawContent);
           if (content) {
             yield {
               type: "content_block_delta",
@@ -220,7 +258,10 @@ Be specific, reference actual filenames, and explain the "why" behind changes.`;
           }
         }
       } catch (error) {
-        console.error("Groq evolution analysis streaming error:", error.message);
+        console.error(
+          "Groq evolution analysis streaming error:",
+          error.message,
+        );
         throw new Error(
           `Groq evolution analysis streaming failed: ${error.message}`,
         );
@@ -245,7 +286,7 @@ export const streamChatResponse = async (
     })
     .join("\n");
 
-  const systemPrompt = `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h and powered by Groq. You help users understand GitHub repositories. Answer questions based on the repository context provided below. Be concise, specific, and reference actual file names and code when relevant.
+  const systemPrompt = `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h and powered by ${providerName}. You help users understand GitHub repositories. Answer questions based on the repository context provided below. Be concise, specific, and reference actual file names and code when relevant.
 
 Repository: ${metadata.name}
 Language: ${metadata.language || "Unknown"}
@@ -273,7 +314,8 @@ Answer the user's question based on this codebase. If the question is outside th
         });
 
         for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content;
+          const rawContent = chunk.choices[0]?.delta?.content;
+          const content = stripThinkTags(rawContent);
           if (content) {
             yield {
               type: "content_block_delta",
@@ -339,7 +381,7 @@ Be specific, reference actual filenames, and keep it concise.`;
             {
               role: "system",
               content:
-                "You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub repositories and help developers understand codebases. You are powered by Groq.",
+                `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub repositories and help developers understand codebases. You are powered by ${providerName}.`,
             },
             {
               role: "user",
@@ -352,7 +394,8 @@ Be specific, reference actual filenames, and keep it concise.`;
         });
 
         for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content;
+          const rawContent = chunk.choices[0]?.delta?.content;
+          const content = stripThinkTags(rawContent);
           if (content) {
             yield {
               type: "content_block_delta",
@@ -421,7 +464,7 @@ Be specific and constructive.`;
             {
               role: "system",
               content:
-                "You are smar-ai, an AI-powered code review assistant built by rishmi5h. You analyze GitHub pull requests and provide constructive, actionable feedback. You are powered by Groq.",
+                `You are smar-ai, an AI-powered code review assistant built by rishmi5h. You analyze GitHub pull requests and provide constructive, actionable feedback. You are powered by ${providerName}.`,
             },
             { role: "user", content: prompt },
           ],
@@ -431,7 +474,8 @@ Be specific and constructive.`;
         });
 
         for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content;
+          const rawContent = chunk.choices[0]?.delta?.content;
+          const content = stripThinkTags(rawContent);
           if (content) {
             yield {
               type: "content_block_delta",
@@ -495,7 +539,7 @@ Be concise and actionable.`;
             {
               role: "system",
               content:
-                "You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub issues and help developers understand and resolve them. You are powered by Groq.",
+                `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub issues and help developers understand and resolve them. You are powered by ${providerName}.`,
             },
             { role: "user", content: prompt },
           ],
@@ -505,7 +549,8 @@ Be concise and actionable.`;
         });
 
         for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content;
+          const rawContent = chunk.choices[0]?.delta?.content;
+          const content = stripThinkTags(rawContent);
           if (content) {
             yield {
               type: "content_block_delta",
@@ -571,7 +616,7 @@ Make it clean, professional, and ready to use. Use shields.io badge placeholders
             {
               role: "system",
               content:
-                "You are smar-ai, an AI-powered README generator built by rishmi5h. You create professional, well-structured README.md files for GitHub repositories based on their code and metadata. Output only raw markdown. You are powered by Groq.",
+                `You are smar-ai, an AI-powered README generator built by rishmi5h. You create professional, well-structured README.md files for GitHub repositories based on their code and metadata. Output only raw markdown. You are powered by ${providerName}.`,
             },
             {
               role: "user",
@@ -584,7 +629,8 @@ Make it clean, professional, and ready to use. Use shields.io badge placeholders
         });
 
         for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content;
+          const rawContent = chunk.choices[0]?.delta?.content;
+          const content = stripThinkTags(rawContent);
           if (content) {
             yield {
               type: "content_block_delta",
@@ -768,7 +814,8 @@ The prompt should produce a complete, working migration — not just a theoretic
         });
 
         for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content;
+          const rawContent = chunk.choices[0]?.delta?.content;
+          const content = stripThinkTags(rawContent);
           if (content) {
             yield {
               type: "content_block_delta",
@@ -802,7 +849,8 @@ export const streamSecurityAnalysis = async (systemPrompt, userPrompt) => {
         });
 
         for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content;
+          const rawContent = chunk.choices[0]?.delta?.content;
+          const content = stripThinkTags(rawContent);
           if (content) {
             yield {
               type: "content_block_delta",
@@ -871,7 +919,7 @@ Create a comprehensive learning guide with prerequisites, learning path, and han
             {
               role: "system",
               content:
-                "You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub repositories and help developers understand codebases. You are powered by Groq.",
+                `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub repositories and help developers understand codebases. You are powered by ${providerName}.`,
             },
             {
               role: "user",
@@ -884,7 +932,8 @@ Create a comprehensive learning guide with prerequisites, learning path, and han
         });
 
         for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content;
+          const rawContent = chunk.choices[0]?.delta?.content;
+          const content = stripThinkTags(rawContent);
           if (content) {
             yield {
               type: "content_block_delta",

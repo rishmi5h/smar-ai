@@ -135,7 +135,7 @@ function AnalysisResults({ results, loading, repoUrl }) {
           className={`results-tab ${activeTab === 'security' ? 'results-tab-active' : ''}`}
           onClick={() => setActiveTab('security')}
         >
-          🛡️ Security
+          Security
         </button>
       </div>
 

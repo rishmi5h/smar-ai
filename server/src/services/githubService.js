@@ -531,21 +531,30 @@ export const getArchitectureSnippets = async (owner, repo, filePaths, branch) =>
 
 // Get code snapshots at a specific commit
 export const getCodeSnippetsAtRef = async (owner, repo, ref, filePaths) => {
+  // Fetch up to 25 files in parallel batches of 10
+  const pathsToFetch = filePaths.slice(0, 25);
+  const batchSize = 10;
   const snippets = [];
 
-  for (const filePath of filePaths.slice(0, 10)) {
-    try {
-      const response = await axios.get(
-        `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${filePath}`,
-        { headers: getHeaders() }
-      );
-      const contentStr = typeof response.data === 'string' ? response.data : String(response.data);
-      snippets.push({
-        path: filePath,
-        content: contentStr.substring(0, 5000)
-      });
-    } catch {
-      // File may not exist at this ref — skip
+  for (let i = 0; i < pathsToFetch.length; i += batchSize) {
+    const batch = pathsToFetch.slice(i, i + batchSize);
+    const results = await Promise.allSettled(
+      batch.map(async (filePath) => {
+        const response = await axios.get(
+          `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${filePath}`,
+          { headers: getHeaders() }
+        );
+        const contentStr = typeof response.data === 'string'
+          ? response.data
+          : (typeof response.data === 'object' ? JSON.stringify(response.data, null, 2) : String(response.data));
+        return { path: filePath, content: contentStr.substring(0, 5000) };
+      })
+    );
+
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        snippets.push(result.value);
+      }
     }
   }
 

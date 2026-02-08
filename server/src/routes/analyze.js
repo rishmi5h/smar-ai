@@ -37,6 +37,9 @@ import {
 import { scanForSecrets } from '../services/secretScanner.js';
 import { auditDependencies } from '../services/dependencyAuditor.js';
 import { buildSecurityPrompt, computeSecurityScore } from '../services/securityPromptBuilder.js';
+import { buildChangelog } from '../services/changelogBuilder.js';
+import { buildImpactGraph } from '../services/impactGraphBuilder.js';
+import { analyzeContributors } from '../services/contributorAnalyzer.js';
 
 export const analyzeRepoRoute = express.Router();
 
@@ -93,7 +96,7 @@ analyzeRepoRoute.post('/analyze', async (req, res) => {
     console.error('Analysis error:', error);
     res.status(400).json({
       error: error.message,
-      details: 'Make sure GROQ_API_KEY is set and a valid GitHub URL is provided'
+      details: 'Make sure your LLM provider is configured (set LLM_PROVIDER to "groq" or "ollama") and a valid GitHub URL is provided'
     });
   }
 });
@@ -261,7 +264,7 @@ analyzeRepoRoute.post('/compare', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    // Send comparison metadata
+    // Send comparison metadata (include patches for file diffs)
     res.write(`data: ${JSON.stringify({
       type: 'metadata',
       totalCommits: compareData.totalCommits,
@@ -272,19 +275,50 @@ analyzeRepoRoute.post('/compare', async (req, res) => {
         filename: f.filename,
         status: f.status,
         additions: f.additions,
-        deletions: f.deletions
+        deletions: f.deletions,
+        patch: f.patch || null
       })),
       commits: compareData.commits
     })}\n\n`);
 
-    // Stream AI evolution analysis
+    // Run local analysis in parallel: contributors, impact graph, changelog
+    const [contributorsData, impactGraphData, changelogData] = await Promise.all([
+      Promise.resolve().then(() => analyzeContributors(compareData.commits, compareData.files)),
+      Promise.resolve().then(() => buildImpactGraph(compareData.files, headSnippets)),
+      Promise.resolve().then(() => buildChangelog(compareData.commits, compareData.files, compareData))
+    ]);
+
+    // Send contributors event
+    res.write(`data: ${JSON.stringify({
+      type: 'contributors',
+      ...contributorsData
+    })}\n\n`);
+
+    // Send impact graph event
+    res.write(`data: ${JSON.stringify({
+      type: 'impact_graph',
+      ...impactGraphData
+    })}\n\n`);
+
+    // Send changelog event
+    res.write(`data: ${JSON.stringify({
+      type: 'changelog',
+      ...changelogData
+    })}\n\n`);
+
+    // Stream AI evolution analysis with enriched context
     const stream = await streamEvolutionAnalysis(
       repo,
       baseSnippets,
       headSnippets,
       compareData,
       baseLabel || base.substring(0, 7),
-      headLabel || head.substring(0, 7)
+      headLabel || head.substring(0, 7),
+      {
+        changelog: changelogData,
+        contributors: contributorsData,
+        impactGraph: impactGraphData
+      }
     );
 
     for await (const event of stream) {
