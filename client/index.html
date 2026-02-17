@@ -1,19 +1,179 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" prefix="og: https://ogp.me/ns#">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/smar-ai.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Primary Meta Tags -->
+    <title>Smar AI - AI-Powered GitHub Repository Analyzer</title>
+    <meta name="title" content="Smar AI - AI-Powered GitHub Repository Analyzer" />
+    <meta name="description" content="Analyze any GitHub repository with AI. Get instant code analysis, architecture diagrams, security scans, PR reviews, README generation, and interactive chat about your codebase. Powered by LLM intelligence." />
+    <meta name="keywords" content="AI code analysis, GitHub repository analyzer, code review AI, architecture diagrams, security scanner, PR review tool, README generator, codebase analyzer, AI developer tools, GitHub AI, code intelligence, repository insights, smar ai, smarai" />
+    <meta name="author" content="Rishabh Mishra" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <link rel="canonical" href="https://smarai.rishmi5h.com/" />
+
+    <!-- Theme & App Meta -->
+    <meta name="theme-color" content="#7c3aed" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="application-name" content="Smar AI" />
+    <meta name="apple-mobile-web-app-title" content="Smar AI" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Open Graph / Facebook / LinkedIn -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://smarai.rishmi5h.com/" />
+    <meta property="og:title" content="Smar AI - AI-Powered GitHub Repository Analyzer" />
+    <meta property="og:description" content="Analyze any GitHub repository with AI. Get instant code analysis, architecture diagrams, security scans, PR reviews, and interactive chat about your codebase." />
+    <meta property="og:image" content="https://smarai.rishmi5h.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Smar AI - AI-Powered GitHub Repository Analyzer" />
+    <meta property="og:site_name" content="Smar AI" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://smarai.rishmi5h.com/" />
+    <meta name="twitter:title" content="Smar AI - AI-Powered GitHub Repository Analyzer" />
+    <meta name="twitter:description" content="Analyze any GitHub repository with AI. Get instant code analysis, architecture diagrams, security scans, PR reviews, and interactive chat about your codebase." />
+    <meta name="twitter:image" content="https://smarai.rishmi5h.com/og-image.png" />
+    <meta name="twitter:image:alt" content="Smar AI - AI-Powered GitHub Repository Analyzer" />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/smar-ai.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="mask-icon" href="/smar-ai.svg" color="#7c3aed" />
+    <meta name="msapplication-TileColor" content="#7c3aed" />
+
+    <!-- Preconnect for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://smar-ai-serivces.rishmi5h.com" crossorigin />
+    <link rel="dns-prefetch" href="https://api.github.com" />
+
+    <!-- Fonts -->
     <link
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
-    <title>Smar AI</title>
+
+    <!-- JSON-LD Structured Data: WebApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Smar AI",
+      "alternateName": "SmarAI",
+      "url": "https://smarai.rishmi5h.com",
+      "description": "AI-powered GitHub repository analyzer. Get instant code analysis, architecture diagrams, security vulnerability scans, PR reviews, README generation, and interactive codebase chat.",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Web",
+      "browserRequirements": "Requires JavaScript",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Rishabh Mishra",
+        "url": "https://rishmi5h.com"
+      },
+      "creator": {
+        "@type": "Person",
+        "name": "Rishabh Mishra",
+        "url": "https://rishmi5h.com"
+      },
+      "featureList": [
+        "AI Code Analysis",
+        "Architecture Diagram Generation",
+        "Security Vulnerability Scanning",
+        "Pull Request Analysis",
+        "Issue Analysis",
+        "README Generation",
+        "Interactive Codebase Chat",
+        "Prompt Generation",
+        "Dependency Auditing",
+        "Real-time Streaming Analysis"
+      ],
+      "screenshot": "https://smarai.rishmi5h.com/og-image.png",
+      "softwareVersion": "1.0.0"
+    }
+    </script>
+
+    <!-- JSON-LD Structured Data: Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Smar AI",
+      "url": "https://smarai.rishmi5h.com",
+      "logo": "https://smarai.rishmi5h.com/smar-ai.svg",
+      "sameAs": [
+        "https://github.com/rishmi5h/smar-ai"
+      ]
+    }
+    </script>
+
+    <!-- JSON-LD Structured Data: BreadcrumbList -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Smar AI",
+          "item": "https://smarai.rishmi5h.com/"
+        }
+      ]
+    }
+    </script>
+
+    <!-- Noscript fallback for crawlers -->
+    <noscript>
+      <style>
+        .noscript-content { max-width: 800px; margin: 40px auto; padding: 20px; font-family: system-ui, sans-serif; color: #e2e8f0; background: #0f172a; }
+        .noscript-content h1 { color: #7c3aed; }
+        .noscript-content a { color: #22d3ee; }
+      </style>
+    </noscript>
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Noscript fallback with SEO-rich content for crawlers that don't execute JS -->
+    <noscript>
+      <div class="noscript-content">
+        <h1>Smar AI - AI-Powered GitHub Repository Analyzer</h1>
+        <p>Smar AI is a free, AI-powered tool that analyzes any GitHub repository instantly. Paste a GitHub URL and get comprehensive insights about your codebase.</p>
+        <h2>Features</h2>
+        <ul>
+          <li><strong>AI Code Analysis</strong> - Get overview, detailed, or learning-guide analysis of any repository</li>
+          <li><strong>Architecture Diagrams</strong> - Auto-generated dependency and structure diagrams</li>
+          <li><strong>Security Scanning</strong> - Multi-pass vulnerability detection and dependency auditing</li>
+          <li><strong>PR Review Analysis</strong> - AI-powered pull request review with actionable feedback</li>
+          <li><strong>Issue Analysis</strong> - Understand GitHub issues with AI context</li>
+          <li><strong>README Generation</strong> - Auto-generate professional README files</li>
+          <li><strong>Interactive Chat</strong> - Ask questions about any codebase in natural language</li>
+          <li><strong>Prompt Generation</strong> - Generate LLM prompts optimized for your codebase</li>
+          <li><strong>Real-time Streaming</strong> - Watch analysis results appear in real-time</li>
+        </ul>
+        <h2>Tech Stack</h2>
+        <p>Built with React, Node.js, Express, and powered by Groq LLM and GitHub API.</p>
+        <p><a href="https://github.com/rishmi5h/smar-ai">View on GitHub</a></p>
+      </div>
+    </noscript>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

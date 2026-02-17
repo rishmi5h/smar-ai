@@ -307,13 +307,17 @@ function RepoAnalyzer() {
       </main>
 
       <footer className="analyzer-footer">
-        <p>
-          <span>Powered by</span>
-          <a href="https://groq.com" target="_blank" rel="noopener noreferrer">Groq</a>
-          <span className="footer-sep">•</span>
-          <span>Made by</span>
-          <a href="https://github.com/rishmi5h" target="_blank" rel="noopener noreferrer">rishmi5h</a>
-        </p>
+        <nav aria-label="Footer links">
+          <p>
+            <span>Powered by</span>
+            <a href="https://groq.com" target="_blank" rel="noopener noreferrer">Groq</a>
+            <span className="footer-sep">•</span>
+            <span>Made by</span>
+            <a href="https://github.com/rishmi5h" target="_blank" rel="noopener noreferrer">rishmi5h</a>
+            <span className="footer-sep">•</span>
+            <a href="https://github.com/rishmi5h/smar-ai" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </p>
+        </nav>
       </footer>
     </div>
   )

@@ -1,0 +1,34 @@
+# robots.txt for Smar AI
+# https://smarai.rishmi5h.com
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Sitemaps
+Sitemap: https://smarai.rishmi5h.com/sitemap.xml
+
+# Crawl-delay (optional, for polite crawling)
+Crawl-delay: 1
+
+# Google-specific
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+
+# Bing
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+
+# GPTBot (OpenAI)
+User-agent: GPTBot
+Allow: /
+
+# ClaudeBot (Anthropic)
+User-agent: ClaudeBot
+Allow: /
+
+# Google Image Bot
+User-agent: Googlebot-Image
+Allow: /

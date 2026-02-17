@@ -12,24 +12,52 @@
   VITE_API_URL = "https://smar-ai-serivces.rishmi5h.com/api"
   NPM_FLAGS = "--include=dev"
 
-# Redirects for SPA routing
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
+# Redirects for SPA routing (order matters - more specific first)
 [[redirects]]
   from = "/api/*"
   to = "https://smar-ai-serivces.rishmi5h.com/api/:splat"
   status = 200
   force = true
 
-# Cache headers for assets
+# Serve static SEO files directly (before SPA catch-all)
+[[redirects]]
+  from = "/robots.txt"
+  to = "/robots.txt"
+  status = 200
+
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/sitemap.xml"
+  status = 200
+
+[[redirects]]
+  from = "/site.webmanifest"
+  to = "/site.webmanifest"
+  status = 200
+
+# SPA catch-all (must be last)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Global security & SEO headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    X-XSS-Protection = "1; mode=block"
+
+# Cache headers for hashed assets (long cache)
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, immutable, max-age=31536000"
 
+# JS/CSS files (short cache)
 [[headers]]
   for = "/*.js"
   [headers.values]
@@ -40,10 +68,41 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
+# HTML files (no cache for fresh content)
 [[headers]]
   for = "/index.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+# SEO files caching
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    Content-Type = "text/plain"
+
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    Content-Type = "application/xml"
+
+[[headers]]
+  for = "/site.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    Content-Type = "application/manifest+json"
+
+# Image caching
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
 
 # API rewriting (optional, if using functions)
 [functions]

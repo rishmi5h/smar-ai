@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#1e1b4b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c3aed" />
+      <stop offset="100%" stop-color="#22d3ee" />
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#c4b5fd" />
+      <stop offset="100%" stop-color="#67e8f9" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)" />
+
+  <!-- Decorative grid lines -->
+  <g opacity="0.05" stroke="#7c3aed" stroke-width="1">
+    <line x1="0" y1="100" x2="1200" y2="100" />
+    <line x1="0" y1="200" x2="1200" y2="200" />
+    <line x1="0" y1="300" x2="1200" y2="300" />
+    <line x1="0" y1="400" x2="1200" y2="400" />
+    <line x1="0" y1="500" x2="1200" y2="500" />
+    <line x1="200" y1="0" x2="200" y2="630" />
+    <line x1="400" y1="0" x2="400" y2="630" />
+    <line x1="600" y1="0" x2="600" y2="630" />
+    <line x1="800" y1="0" x2="800" y2="630" />
+    <line x1="1000" y1="0" x2="1000" y2="630" />
+  </g>
+
+  <!-- Decorative orbs -->
+  <circle cx="150" cy="150" r="200" fill="#7c3aed" opacity="0.08" />
+  <circle cx="1050" cy="480" r="250" fill="#22d3ee" opacity="0.06" />
+
+  <!-- Logo icon (scaled version of smar-ai.svg) -->
+  <g transform="translate(100, 200) scale(2.5)">
+    <rect width="64" height="64" rx="14" fill="url(#accent)" />
+    <path d="M26 46c-3 0-6-2-7-5-3-1-5-4-5-7 0-3 2-6 5-7 0-6 5-11 11-11 3 0 6 1 8 3 1-1 3-2 5-2 4 0 8 4 8 9 3 1 5 4 5 7 0 3-2 6-5 7-1 4-4 6-8 6H26z" fill="#fff" opacity="0.95" />
+    <path d="M24 27c2-3 6-4 9-3M24 34c2-3 6-4 9-3" stroke="#5b21b6" stroke-width="3" stroke-linecap="round" />
+    <path d="M38 28c1-1 3-2 5-2" stroke="#5b21b6" stroke-width="3" stroke-linecap="round" />
+  </g>
+
+  <!-- Title -->
+  <text x="370" y="280" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="url(#textGrad)">Smar AI</text>
+
+  <!-- Subtitle -->
+  <text x="370" y="340" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="400" fill="#94a3b8">AI-Powered GitHub Repository Analyzer</text>
+
+  <!-- Feature pills -->
+  <g transform="translate(370, 380)">
+    <rect x="0" y="0" width="160" height="36" rx="18" fill="#7c3aed" opacity="0.3" />
+    <text x="80" y="24" font-family="system-ui, sans-serif" font-size="14" font-weight="500" fill="#c4b5fd" text-anchor="middle">Code Analysis</text>
+
+    <rect x="175" y="0" width="200" height="36" rx="18" fill="#7c3aed" opacity="0.3" />
+    <text x="275" y="24" font-family="system-ui, sans-serif" font-size="14" font-weight="500" fill="#c4b5fd" text-anchor="middle">Architecture Diagrams</text>
+
+    <rect x="390" y="0" width="180" height="36" rx="18" fill="#7c3aed" opacity="0.3" />
+    <text x="480" y="24" font-family="system-ui, sans-serif" font-size="14" font-weight="500" fill="#c4b5fd" text-anchor="middle">Security Scanning</text>
+
+    <rect x="0" y="48" width="130" height="36" rx="18" fill="#22d3ee" opacity="0.2" />
+    <text x="65" y="72" font-family="system-ui, sans-serif" font-size="14" font-weight="500" fill="#67e8f9" text-anchor="middle">PR Review</text>
+
+    <rect x="145" y="48" width="190" height="36" rx="18" fill="#22d3ee" opacity="0.2" />
+    <text x="240" y="72" font-family="system-ui, sans-serif" font-size="14" font-weight="500" fill="#67e8f9" text-anchor="middle">README Generator</text>
+
+    <rect x="350" y="48" width="170" height="36" rx="18" fill="#22d3ee" opacity="0.2" />
+    <text x="435" y="72" font-family="system-ui, sans-serif" font-size="14" font-weight="500" fill="#67e8f9" text-anchor="middle">Interactive Chat</text>
+  </g>
+
+  <!-- URL -->
+  <text x="600" y="580" font-family="system-ui, sans-serif" font-size="20" font-weight="400" fill="#64748b" text-anchor="middle">smarai.rishmi5h.com</text>
+
+  <!-- Bottom accent line -->
+  <rect x="0" y="620" width="1200" height="10" fill="url(#accent)" />
+</svg>

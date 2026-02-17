@@ -29,7 +29,7 @@ function SearchBar({
 
   return (
     <div className="search-bar">
-      <form onSubmit={onAnalyze} className="search-form">
+      <form onSubmit={onAnalyze} className="search-form" role="search" aria-label="Analyze a GitHub repository">
         <div className="input-group">
           {urlTypeBadge && (
             <span className={`url-type-badge ${urlTypeBadge.className}`}>
