@@ -1,8 +1,5 @@
-import {
-  client as groq,
-  model as GROQ_MODEL,
-  providerName,
-} from "./llmProvider.js";
+import { providerName } from "./llmProvider.js";
+import { chatCompletion, chatCompletionStream } from "./llmFallback.js";
 
 // Strip <think>...</think> reasoning traces from Ollama models
 const stripThinkTags = (text) => {
@@ -10,39 +7,82 @@ const stripThinkTags = (text) => {
   return text.replace(/<think>[\s\S]*?<\/think>/g, "").replace(/<think>[\s\S]*/g, "");
 };
 
-// Helper function to call Groq API
-const callGroq = async (prompt, maxTokens = 2000) => {
+const SYSTEM_PROMPT = `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub repositories and help developers understand codebases. You are powered by ${providerName}.`;
+
+// Helper function to call LLM with fallback
+const callLLM = async (prompt, maxTokens = 2000) => {
   try {
-    console.log(`Calling ${providerName}: ${GROQ_MODEL}`);
-
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content:
-            `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub repositories and help developers understand codebases. You are powered by ${providerName}.`,
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
+    const result = await chatCompletion(
+      [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: prompt },
       ],
-      model: GROQ_MODEL,
-      max_completion_tokens: maxTokens,
-      temperature: 0.7,
-    });
-
-    return chatCompletion.choices[0]?.message?.content || "";
+      { max_completion_tokens: maxTokens, temperature: 0.7 },
+    );
+    return stripThinkTags(result.choices[0]?.message?.content || "");
   } catch (error) {
-    console.error("Groq API error:", {
+    console.error("LLM API error:", {
       message: error.message,
       status: error.status,
-      error: error.error,
     });
-    throw new Error(
-      `Groq API failed: ${error.message}. Check if GROQ_API_KEY is set and model "${GROQ_MODEL}" is available.`,
-    );
+    throw new Error(`LLM API failed: ${error.message}`);
   }
+};
+
+// Helper to create a streaming async iterable with fallback
+const createStream = (systemPrompt, userPrompt, temperature = 0.7) => {
+  return {
+    [Symbol.asyncIterator]: async function* () {
+      try {
+        const stream = await chatCompletionStream(
+          [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          { temperature },
+        );
+
+        for await (const chunk of stream) {
+          const rawContent = chunk.choices[0]?.delta?.content;
+          const content = stripThinkTags(rawContent);
+          if (content) {
+            yield {
+              type: "content_block_delta",
+              delta: { type: "text_delta", text: content },
+            };
+          }
+        }
+      } catch (error) {
+        console.error("LLM streaming error:", error.message);
+        throw new Error(`LLM streaming failed: ${error.message}`);
+      }
+    },
+  };
+};
+
+// Helper to create streaming with custom messages (for chat)
+const createStreamWithMessages = (messages, temperature = 0.7) => {
+  return {
+    [Symbol.asyncIterator]: async function* () {
+      try {
+        const stream = await chatCompletionStream(messages, { temperature });
+
+        for await (const chunk of stream) {
+          const rawContent = chunk.choices[0]?.delta?.content;
+          const content = stripThinkTags(rawContent);
+          if (content) {
+            yield {
+              type: "content_block_delta",
+              delta: { type: "text_delta", text: content },
+            };
+          }
+        }
+      } catch (error) {
+        console.error("LLM streaming error:", error.message);
+        throw new Error(`LLM streaming failed: ${error.message}`);
+      }
+    },
+  };
 };
 
 // Generate code overview
@@ -73,7 +113,7 @@ Provide:
 
 Keep response concise and clear.`;
 
-  return await callGroq(prompt, 1000);
+  return await callLLM(prompt, 1000);
 };
 
 // Generate detailed code explanation
@@ -105,7 +145,7 @@ Explain:
 
 Use simple language and provide examples where helpful.`;
 
-  return await callGroq(prompt, 1500);
+  return await callLLM(prompt, 1500);
 };
 
 // Generate learning guide for the codebase
@@ -138,7 +178,7 @@ Create a guide with:
 
 Make it beginner-friendly and concise.`;
 
-  return await callGroq(prompt, 1500);
+  return await callLLM(prompt, 1500);
 };
 
 // Streaming codebase evolution analysis — compares two snapshots
@@ -160,7 +200,6 @@ export const streamEvolutionAnalysis = async (
       })
       .join("\n\n");
 
-  // Build context sections from changelog, contributors, impact graph
   let contextSections = "";
 
   if (context.changelog) {
@@ -172,7 +211,7 @@ export const streamEvolutionAnalysis = async (
     contextSections += `\n### CHANGELOG SUMMARY:\n${sectionSummary}\n`;
 
     if (cl.breakingChanges && cl.breakingChanges.length > 0) {
-      contextSections += `\n### ⚠️ BREAKING CHANGES DETECTED:\n`;
+      contextSections += `\n### BREAKING CHANGES DETECTED:\n`;
       cl.breakingChanges.forEach((bc) => {
         contextSections += `- [${bc.severity}] ${bc.file}: ${bc.description}\n`;
       });
@@ -227,47 +266,10 @@ Provide a comprehensive evolution analysis with these sections:
 
 Be specific, reference actual filenames, explain the "why" behind changes, and use markdown formatting with headers and bullet points.`;
 
-  return {
-    [Symbol.asyncIterator]: async function* () {
-      try {
-        const stream = await groq.chat.completions.create({
-          messages: [
-            {
-              role: "system",
-              content:
-                `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You provide detailed, actionable codebase evolution analysis. You identify breaking changes, assess risk, and give clear recommendations. You are powered by ${providerName}.`,
-            },
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-          model: GROQ_MODEL,
-          temperature: 0.7,
-          stream: true,
-        });
-
-        for await (const chunk of stream) {
-          const rawContent = chunk.choices[0]?.delta?.content;
-          const content = stripThinkTags(rawContent);
-          if (content) {
-            yield {
-              type: "content_block_delta",
-              delta: { type: "text_delta", text: content },
-            };
-          }
-        }
-      } catch (error) {
-        console.error(
-          "Groq evolution analysis streaming error:",
-          error.message,
-        );
-        throw new Error(
-          `Groq evolution analysis streaming failed: ${error.message}`,
-        );
-      }
-    },
-  };
+  return createStream(
+    `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You provide detailed, actionable codebase evolution analysis. You identify breaking changes, assess risk, and give clear recommendations. You are powered by ${providerName}.`,
+    prompt,
+  );
 };
 
 // Streaming chat response for interactive Q&A
@@ -303,32 +305,7 @@ Answer the user's question based on this codebase. If the question is outside th
     { role: "user", content: question },
   ];
 
-  return {
-    [Symbol.asyncIterator]: async function* () {
-      try {
-        const stream = await groq.chat.completions.create({
-          messages,
-          model: GROQ_MODEL,
-          temperature: 0.7,
-          stream: true,
-        });
-
-        for await (const chunk of stream) {
-          const rawContent = chunk.choices[0]?.delta?.content;
-          const content = stripThinkTags(rawContent);
-          if (content) {
-            yield {
-              type: "content_block_delta",
-              delta: { type: "text_delta", text: content },
-            };
-          }
-        }
-      } catch (error) {
-        console.error("Groq chat streaming error:", error.message);
-        throw new Error(`Groq chat streaming failed: ${error.message}`);
-      }
-    },
-  };
+  return createStreamWithMessages(messages);
 };
 
 // Streaming architecture analysis
@@ -373,44 +350,7 @@ Provide a clear architectural analysis:
 
 Be specific, reference actual filenames, and keep it concise.`;
 
-  return {
-    [Symbol.asyncIterator]: async function* () {
-      try {
-        const stream = await groq.chat.completions.create({
-          messages: [
-            {
-              role: "system",
-              content:
-                `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub repositories and help developers understand codebases. You are powered by ${providerName}.`,
-            },
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-          model: GROQ_MODEL,
-          temperature: 0.7,
-          stream: true,
-        });
-
-        for await (const chunk of stream) {
-          const rawContent = chunk.choices[0]?.delta?.content;
-          const content = stripThinkTags(rawContent);
-          if (content) {
-            yield {
-              type: "content_block_delta",
-              delta: { type: "text_delta", text: content },
-            };
-          }
-        }
-      } catch (error) {
-        console.error("Groq architecture analysis streaming error:", error.message);
-        throw new Error(
-          `Groq architecture analysis streaming failed: ${error.message}`,
-        );
-      }
-    },
-  };
+  return createStream(SYSTEM_PROMPT, prompt);
 };
 
 // Streaming PR analysis
@@ -456,39 +396,10 @@ Provide a thorough code review:
 
 Be specific and constructive.`;
 
-  return {
-    [Symbol.asyncIterator]: async function* () {
-      try {
-        const stream = await groq.chat.completions.create({
-          messages: [
-            {
-              role: "system",
-              content:
-                `You are smar-ai, an AI-powered code review assistant built by rishmi5h. You analyze GitHub pull requests and provide constructive, actionable feedback. You are powered by ${providerName}.`,
-            },
-            { role: "user", content: prompt },
-          ],
-          model: GROQ_MODEL,
-          temperature: 0.7,
-          stream: true,
-        });
-
-        for await (const chunk of stream) {
-          const rawContent = chunk.choices[0]?.delta?.content;
-          const content = stripThinkTags(rawContent);
-          if (content) {
-            yield {
-              type: "content_block_delta",
-              delta: { type: "text_delta", text: content },
-            };
-          }
-        }
-      } catch (error) {
-        console.error("Groq PR analysis streaming error:", error.message);
-        throw new Error(`Groq PR analysis streaming failed: ${error.message}`);
-      }
-    },
-  };
+  return createStream(
+    `You are smar-ai, an AI-powered code review assistant built by rishmi5h. You analyze GitHub pull requests and provide constructive, actionable feedback. You are powered by ${providerName}.`,
+    prompt,
+  );
 };
 
 // Streaming Issue analysis
@@ -531,39 +442,10 @@ Provide a comprehensive analysis:
 
 Be concise and actionable.`;
 
-  return {
-    [Symbol.asyncIterator]: async function* () {
-      try {
-        const stream = await groq.chat.completions.create({
-          messages: [
-            {
-              role: "system",
-              content:
-                `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub issues and help developers understand and resolve them. You are powered by ${providerName}.`,
-            },
-            { role: "user", content: prompt },
-          ],
-          model: GROQ_MODEL,
-          temperature: 0.7,
-          stream: true,
-        });
-
-        for await (const chunk of stream) {
-          const rawContent = chunk.choices[0]?.delta?.content;
-          const content = stripThinkTags(rawContent);
-          if (content) {
-            yield {
-              type: "content_block_delta",
-              delta: { type: "text_delta", text: content },
-            };
-          }
-        }
-      } catch (error) {
-        console.error("Groq issue analysis streaming error:", error.message);
-        throw new Error(`Groq issue analysis streaming failed: ${error.message}`);
-      }
-    },
-  };
+  return createStream(
+    `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub issues and help developers understand and resolve them. You are powered by ${providerName}.`,
+    prompt,
+  );
 };
 
 // Streaming README generation
@@ -608,44 +490,10 @@ Generate a complete README.md with proper markdown formatting. Include:
 
 Make it clean, professional, and ready to use. Use shields.io badge placeholders where appropriate. Output ONLY the raw markdown content, no extra commentary.`;
 
-  return {
-    [Symbol.asyncIterator]: async function* () {
-      try {
-        const stream = await groq.chat.completions.create({
-          messages: [
-            {
-              role: "system",
-              content:
-                `You are smar-ai, an AI-powered README generator built by rishmi5h. You create professional, well-structured README.md files for GitHub repositories based on their code and metadata. Output only raw markdown. You are powered by ${providerName}.`,
-            },
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-          model: GROQ_MODEL,
-          temperature: 0.7,
-          stream: true,
-        });
-
-        for await (const chunk of stream) {
-          const rawContent = chunk.choices[0]?.delta?.content;
-          const content = stripThinkTags(rawContent);
-          if (content) {
-            yield {
-              type: "content_block_delta",
-              delta: { type: "text_delta", text: content },
-            };
-          }
-        }
-      } catch (error) {
-        console.error("Groq README generation streaming error:", error.message);
-        throw new Error(
-          `Groq README generation streaming failed: ${error.message}`,
-        );
-      }
-    },
-  };
+  return createStream(
+    `You are smar-ai, an AI-powered README generator built by rishmi5h. You create professional, well-structured README.md files for GitHub repositories based on their code and metadata. Output only raw markdown. You are powered by ${providerName}.`,
+    prompt,
+  );
 };
 
 // Streaming prompt generation — generates copy-pasteable prompts for LLMs
@@ -800,72 +648,12 @@ Generate a migration prompt that includes:
 The prompt should produce a complete, working migration — not just a theoretical plan.`;
   }
 
-  return {
-    [Symbol.asyncIterator]: async function* () {
-      try {
-        const stream = await groq.chat.completions.create({
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          model: GROQ_MODEL,
-          temperature: 0.7,
-          stream: true,
-        });
-
-        for await (const chunk of stream) {
-          const rawContent = chunk.choices[0]?.delta?.content;
-          const content = stripThinkTags(rawContent);
-          if (content) {
-            yield {
-              type: "content_block_delta",
-              delta: { type: "text_delta", text: content },
-            };
-          }
-        }
-      } catch (error) {
-        console.error("Groq prompt generation streaming error:", error.message);
-        throw new Error(
-          `Groq prompt generation streaming failed: ${error.message}`,
-        );
-      }
-    },
-  };
+  return createStream(systemPrompt, userPrompt);
 };
 
 // Streaming security analysis — accepts pre-built prompts from securityPromptBuilder
 export const streamSecurityAnalysis = async (systemPrompt, userPrompt) => {
-  return {
-    [Symbol.asyncIterator]: async function* () {
-      try {
-        const stream = await groq.chat.completions.create({
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          model: GROQ_MODEL,
-          temperature: 0.3,
-          stream: true,
-        });
-
-        for await (const chunk of stream) {
-          const rawContent = chunk.choices[0]?.delta?.content;
-          const content = stripThinkTags(rawContent);
-          if (content) {
-            yield {
-              type: "content_block_delta",
-              delta: { type: "text_delta", text: content },
-            };
-          }
-        }
-      } catch (error) {
-        console.error("Groq security analysis streaming error:", error.message);
-        throw new Error(
-          `Groq security analysis streaming failed: ${error.message}`,
-        );
-      }
-    },
-  };
+  return createStream(systemPrompt, userPrompt, 0.3);
 };
 
 // Streaming version for real-time analysis
@@ -910,41 +698,5 @@ ${snippetText}
 Create a comprehensive learning guide with prerequisites, learning path, and hands-on activities.`;
   }
 
-  // Create async generator for streaming
-  return {
-    [Symbol.asyncIterator]: async function* () {
-      try {
-        const stream = await groq.chat.completions.create({
-          messages: [
-            {
-              role: "system",
-              content:
-                `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You analyze GitHub repositories and help developers understand codebases. You are powered by ${providerName}.`,
-            },
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-          model: GROQ_MODEL,
-          temperature: 0.7,
-          stream: true,
-        });
-
-        for await (const chunk of stream) {
-          const rawContent = chunk.choices[0]?.delta?.content;
-          const content = stripThinkTags(rawContent);
-          if (content) {
-            yield {
-              type: "content_block_delta",
-              delta: { type: "text_delta", text: content },
-            };
-          }
-        }
-      } catch (error) {
-        console.error("Groq streaming error:", error.message);
-        throw new Error(`Groq streaming failed: ${error.message}`);
-      }
-    },
-  };
+  return createStream(SYSTEM_PROMPT, prompt);
 };

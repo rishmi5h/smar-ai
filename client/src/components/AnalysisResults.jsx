@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import './AnalysisResults.css'
 import MarkdownRenderer from './MarkdownRenderer'
 import ChangesPanel from './ChangesPanel'
@@ -10,6 +10,13 @@ import SecurityPanel from './SecurityPanel'
 function AnalysisResults({ results, loading, repoUrl }) {
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState('analysis')
+  const tabsRef = useRef(null)
+
+  const handleTabClick = (tab, e) => {
+    setActiveTab(tab)
+    // Scroll the clicked tab into view within the tabs container
+    e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+  }
 
   if (!results || !results.repository) {
     return null
@@ -100,40 +107,40 @@ function AnalysisResults({ results, loading, repoUrl }) {
         </div>
       </div>
 
-      <div className="results-tabs">
+      <div className="results-tabs" ref={tabsRef}>
         <button
           className={`results-tab ${activeTab === 'analysis' ? 'results-tab-active' : ''}`}
-          onClick={() => setActiveTab('analysis')}
+          onClick={(e) => handleTabClick('analysis', e)}
         >
           Analysis
         </button>
         <button
           className={`results-tab ${activeTab === 'changes' ? 'results-tab-active' : ''}`}
-          onClick={() => setActiveTab('changes')}
+          onClick={(e) => handleTabClick('changes', e)}
         >
           Changes
         </button>
         <button
           className={`results-tab ${activeTab === 'architecture' ? 'results-tab-active' : ''}`}
-          onClick={() => setActiveTab('architecture')}
+          onClick={(e) => handleTabClick('architecture', e)}
         >
           Architecture
         </button>
         <button
           className={`results-tab ${activeTab === 'readme' ? 'results-tab-active' : ''}`}
-          onClick={() => setActiveTab('readme')}
+          onClick={(e) => handleTabClick('readme', e)}
         >
           README
         </button>
         <button
           className={`results-tab ${activeTab === 'prompts' ? 'results-tab-active' : ''}`}
-          onClick={() => setActiveTab('prompts')}
+          onClick={(e) => handleTabClick('prompts', e)}
         >
           Prompts
         </button>
         <button
           className={`results-tab ${activeTab === 'security' ? 'results-tab-active' : ''}`}
-          onClick={() => setActiveTab('security')}
+          onClick={(e) => handleTabClick('security', e)}
         >
           Security
         </button>

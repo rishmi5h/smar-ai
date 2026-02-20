@@ -81,6 +81,13 @@
   display: flex;
   border-bottom: 1px solid var(--color-border);
   padding: 0 2rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.pr-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .pr-tab {
@@ -94,6 +101,8 @@
   cursor: pointer;
   transition: all 0.2s;
   font-family: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .pr-tab:hover { color: var(--color-text); }
@@ -186,7 +195,8 @@
 @media (max-width: 768px) {
   .pr-header { padding: 1.5rem; }
   .pr-title { font-size: 1.2rem; }
-  .pr-tabs { padding: 0 1.5rem; }
-  .pr-content { padding: 1.5rem; max-height: none; overflow-y: visible; }
+  .pr-tabs { padding: 0 1rem; }
+  .pr-tab { padding: 0.75rem 1rem; font-size: 0.85rem; }
+  .pr-content { padding: 1rem; max-height: 70vh; overflow-y: auto; }
   .pr-footer { padding: 1rem 1.5rem; }
 }
