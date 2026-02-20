@@ -136,7 +136,7 @@ export const getRelevantCodeFiles = async (owner, repo) => {
         const bPriority = priorityOrder.findIndex(p => b.path.includes(p));
         return (aPriority === -1 ? 999 : aPriority) - (bPriority === -1 ? 999 : bPriority);
       })
-      .slice(0, 20); // Limit to 20 files
+      .slice(0, 50); // Limit to 50 files
 
     return { files: relevantFiles, branch };
   } catch (error) {
@@ -270,7 +270,7 @@ export const getCodeSnippets = async (owner, repo, filePaths) => {
 
   const snippets = [];
 
-  for (const filePath of filePaths.slice(0, 10)) {
+  for (const filePath of filePaths.slice(0, 20)) {
     try {
       const content = await getFileContent(owner, repo, filePath, branch);
       // Ensure content is a string (handle Buffer or other types)

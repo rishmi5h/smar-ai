@@ -40,7 +40,7 @@ const callOllama = async (prompt, maxTokens = 2000) => {
 // Generate code overview
 export const generateCodeOverview = async (metadata, codeSnippets) => {
   // Limit snippets to reduce token count
-  const limitedSnippets = codeSnippets.slice(0, 5);
+  const limitedSnippets = codeSnippets.slice(0, 20);
   const snippetText = limitedSnippets
     .map(s => {
       const contentStr = typeof s.content === 'string' ? s.content : String(s.content);
@@ -70,7 +70,7 @@ Keep response concise and clear.`;
 
 // Generate detailed code explanation
 export const generateCodeExplanation = async (metadata, codeSnippets) => {
-  const limitedSnippets = codeSnippets.slice(0, 5);
+  const limitedSnippets = codeSnippets.slice(0, 20);
   const snippetText = limitedSnippets
     .map(s => {
       const contentStr = typeof s.content === 'string' ? s.content : String(s.content);
@@ -101,7 +101,7 @@ Use simple language and provide examples where helpful.`;
 
 // Generate learning guide for the codebase
 export const generateLearningGuide = async (metadata, codeSnippets) => {
-  const limitedSnippets = codeSnippets.slice(0, 5);
+  const limitedSnippets = codeSnippets.slice(0, 20);
   const snippetText = limitedSnippets
     .map(s => {
       const contentStr = typeof s.content === 'string' ? s.content : String(s.content);

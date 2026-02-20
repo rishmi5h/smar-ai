@@ -87,7 +87,7 @@ const createStreamWithMessages = (messages, temperature = 0.7) => {
 
 // Generate code overview
 export const generateCodeOverview = async (metadata, codeSnippets) => {
-  const limitedSnippets = codeSnippets.slice(0, 5);
+  const limitedSnippets = codeSnippets.slice(0, 20);
   const snippetText = limitedSnippets
     .map((s) => {
       const contentStr =
@@ -118,7 +118,7 @@ Keep response concise and clear.`;
 
 // Generate detailed code explanation
 export const generateCodeExplanation = async (metadata, codeSnippets) => {
-  const limitedSnippets = codeSnippets.slice(0, 5);
+  const limitedSnippets = codeSnippets.slice(0, 20);
   const snippetText = limitedSnippets
     .map((s) => {
       const contentStr =
@@ -150,7 +150,7 @@ Use simple language and provide examples where helpful.`;
 
 // Generate learning guide for the codebase
 export const generateLearningGuide = async (metadata, codeSnippets) => {
-  const limitedSnippets = codeSnippets.slice(0, 5);
+  const limitedSnippets = codeSnippets.slice(0, 20);
   const snippetText = limitedSnippets
     .map((s) => {
       const contentStr =
@@ -280,7 +280,7 @@ export const streamChatResponse = async (
   question,
 ) => {
   const snippetText = codeSnippets
-    .slice(0, 5)
+    .slice(0, 20)
     .map((s) => {
       const contentStr =
         typeof s.content === "string" ? s.content : String(s.content);
