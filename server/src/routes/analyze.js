@@ -217,14 +217,14 @@ analyzeRepoRoute.post('/chat', async (req, res) => {
 // Get recent commits for a repository
 analyzeRepoRoute.get('/commits', async (req, res) => {
   try {
-    const { repoUrl, since, perPage } = req.query;
+    const { repoUrl, since, until, perPage } = req.query;
 
     if (!repoUrl) {
       return res.status(400).json({ error: 'repoUrl is required' });
     }
 
     const { owner, repo } = parseGithubUrl(repoUrl);
-    const commits = await getRecentCommits(owner, repo, since || undefined, parseInt(perPage) || 20);
+    const commits = await getRecentCommits(owner, repo, since || undefined, parseInt(perPage) || 20, until || undefined);
 
     res.json({ success: true, commits });
   } catch (error) {

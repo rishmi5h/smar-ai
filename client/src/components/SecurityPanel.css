@@ -189,6 +189,13 @@
   display: flex;
   gap: 0;
   border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.sec-section-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .sec-section-tab {
@@ -201,6 +208,8 @@
   font-size: 0.85rem;
   font-family: inherit;
   transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .sec-section-tab:hover {

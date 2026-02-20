@@ -116,12 +116,13 @@ function ChangesPanel({ repoUrl }) {
     }
   }, [impactGraph, activeSection, renderDiagram])
 
-  const fetchCommits = async (since) => {
+  const fetchCommits = async (since, until) => {
     setLoadingCommits(true)
     setCommitsError('')
     try {
       const params = new URLSearchParams({ repoUrl })
       if (since) params.append('since', since)
+      if (until) params.append('until', until)
       params.append('perPage', '30')
 
       const response = await fetch(`${API_BASE_URL}/commits?${params}`)
@@ -156,7 +157,9 @@ function ChangesPanel({ repoUrl }) {
 
   const handleCustomDateApply = () => {
     if (customFrom) {
-      fetchCommits(new Date(customFrom).toISOString())
+      const since = new Date(customFrom).toISOString()
+      const until = customTo ? new Date(customTo + 'T23:59:59').toISOString() : undefined
+      fetchCommits(since, until)
     }
   }
 

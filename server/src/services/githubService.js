@@ -288,10 +288,11 @@ export const getCodeSnippets = async (owner, repo, filePaths) => {
 };
 
 // Get recent commits for a repository
-export const getRecentCommits = async (owner, repo, since, perPage = 20) => {
+export const getRecentCommits = async (owner, repo, since, perPage = 20, until) => {
   try {
     const params = { per_page: perPage };
     if (since) params.since = since;
+    if (until) params.until = until;
 
     const response = await axios.get(
       `${GITHUB_API_BASE}/repos/${owner}/${repo}/commits`,

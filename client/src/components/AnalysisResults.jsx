@@ -146,47 +146,35 @@ function AnalysisResults({ results, loading, repoUrl }) {
         </button>
       </div>
 
-      {activeTab === 'analysis' && (
-        <div className="analysis-content">
-          {loading && (
-            <div className="streaming-indicator">
-              <span className="pulse"></span>
-              Analyzing in real-time...
-            </div>
-          )}
-          <MarkdownRenderer content={results.analysis} />
-        </div>
-      )}
+      <div className="analysis-content" style={{ display: activeTab === 'analysis' ? 'block' : 'none' }}>
+        {loading && (
+          <div className="streaming-indicator">
+            <span className="pulse"></span>
+            Analyzing in real-time...
+          </div>
+        )}
+        <MarkdownRenderer content={results.analysis} />
+      </div>
 
-      {activeTab === 'changes' && (
-        <div className="analysis-content">
-          <ChangesPanel repoUrl={repoUrl} />
-        </div>
-      )}
+      <div className="analysis-content" style={{ display: activeTab === 'changes' ? 'block' : 'none' }}>
+        <ChangesPanel repoUrl={repoUrl} />
+      </div>
 
-      {activeTab === 'architecture' && (
-        <div className="analysis-content">
-          <ArchitecturePanel repoUrl={repoUrl} />
-        </div>
-      )}
+      <div className="analysis-content" style={{ display: activeTab === 'architecture' ? 'block' : 'none' }}>
+        <ArchitecturePanel repoUrl={repoUrl} />
+      </div>
 
-      {activeTab === 'readme' && (
-        <div className="analysis-content">
-          <ReadmePanel repoUrl={repoUrl} />
-        </div>
-      )}
+      <div className="analysis-content" style={{ display: activeTab === 'readme' ? 'block' : 'none' }}>
+        <ReadmePanel repoUrl={repoUrl} />
+      </div>
 
-      {activeTab === 'prompts' && (
-        <div className="analysis-content">
-          <PromptPanel repoUrl={repoUrl} />
-        </div>
-      )}
+      <div className="analysis-content" style={{ display: activeTab === 'prompts' ? 'block' : 'none' }}>
+        <PromptPanel repoUrl={repoUrl} />
+      </div>
 
-      {activeTab === 'security' && (
-        <div className="analysis-content">
-          <SecurityPanel repoUrl={repoUrl} />
-        </div>
-      )}
+      <div className="analysis-content" style={{ display: activeTab === 'security' ? 'block' : 'none' }}>
+        <SecurityPanel repoUrl={repoUrl} />
+      </div>
 
       <div className="results-footer">
         <p className="timestamp">
