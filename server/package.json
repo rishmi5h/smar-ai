@@ -1,6 +1,6 @@
 {
   "name": "smar-ai-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Backend API for smar-ai",
   "main": "src/index.js",
   "type": "module",
