@@ -7,6 +7,7 @@ import LoadingSpinner from './LoadingSpinner'
 import ChatPanel from './ChatPanel'
 import PRAnalysisResults from './PRAnalysisResults'
 import IssueAnalysisResults from './IssueAnalysisResults'
+import CompareResults from './CompareResults'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
@@ -24,6 +25,11 @@ function RepoAnalyzer() {
   const [results, setResults] = useState(null)
   const [useStream, setUseStream] = useState(false)
   const [resultType, setResultType] = useState('repo')
+  const [mode, setMode] = useState(() =>
+    window.location.hash === '#compare' ? 'compare' : 'single'
+  )
+  const [compareUrlA, setCompareUrlA] = useState('')
+  const [compareUrlB, setCompareUrlB] = useState('')
 
   const normalizeRepoUrl = (input) => {
     const trimmed = input.trim()
@@ -227,11 +233,87 @@ function RepoAnalyzer() {
     setResults(issueResults)
   }
 
+  const handleCompare = async (e) => {
+    e.preventDefault()
+
+    if (!compareUrlA.trim() || !compareUrlB.trim()) {
+      setError('Please enter both repository URLs')
+      return
+    }
+
+    setLoading(true)
+    setError('')
+    setResults(null)
+    setResultType('compare')
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/compare-repos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          repoUrlA: normalizeRepoUrl(compareUrlA),
+          repoUrlB: normalizeRepoUrl(compareUrlB)
+        })
+      })
+
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || 'Comparison failed')
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let analysisText = ''
+      const compareResults = { repoA: null, repoB: null, comparison: '' }
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const text = decoder.decode(value)
+        const lines = text.split('\n').filter(l => l.startsWith('data: '))
+
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line.slice(6))
+            if (data.type === 'metadata') {
+              compareResults.repoA = data.repoA
+              compareResults.repoB = data.repoB
+              setResults({ ...compareResults })
+            } else if (data.type === 'analysis_chunk') {
+              analysisText += data.text
+              compareResults.comparison = analysisText
+              setResults({ ...compareResults })
+            }
+          } catch (e) {
+            // skip malformed
+          }
+        }
+      }
+
+      setResults(compareResults)
+    } catch (err) {
+      setError(err.message || 'Failed to compare repositories')
+      console.error('Compare error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleClear = () => {
     setRepoUrl('')
+    setCompareUrlA('')
+    setCompareUrlB('')
     setResults(null)
     setError('')
     setResultType('repo')
+  }
+
+  const handleModeSwitch = (newMode) => {
+    if (newMode === mode) return
+    setMode(newMode)
+    window.location.hash = newMode === 'compare' ? 'compare' : ''
+    handleClear()
   }
 
   const currentUrlType = repoUrl ? detectUrlType(repoUrl) : 'repo'
@@ -246,20 +328,126 @@ function RepoAnalyzer() {
             </h1>
           </div>
           <p className="header-description">Understand any code, fast.</p>
+
+          <div className="mode-toggle">
+            <button
+              className={`mode-btn${mode === 'single' ? ' mode-active' : ''}`}
+              onClick={() => handleModeSwitch('single')}
+              disabled={loading}
+            >
+              Analyze
+            </button>
+            <button
+              className={`mode-btn${mode === 'compare' ? ' mode-active' : ''}`}
+              onClick={() => handleModeSwitch('compare')}
+              disabled={loading}
+            >
+              Compare
+            </button>
+          </div>
+
           <div className="hero-search">
-            <SearchBar
-              repoUrl={repoUrl}
-              setRepoUrl={setRepoUrl}
-              analysisType={analysisType}
-              setAnalysisType={setAnalysisType}
-              useStream={useStream}
-              setUseStream={setUseStream}
-              onAnalyze={handleAnalyze}
-              onClear={handleClear}
-              onExampleSelect={setRepoUrl}
-              loading={loading}
-              urlType={currentUrlType}
-            />
+            {mode === 'single' ? (
+              <SearchBar
+                repoUrl={repoUrl}
+                setRepoUrl={setRepoUrl}
+                analysisType={analysisType}
+                setAnalysisType={setAnalysisType}
+                useStream={useStream}
+                setUseStream={setUseStream}
+                onAnalyze={handleAnalyze}
+                onClear={handleClear}
+                onExampleSelect={setRepoUrl}
+                loading={loading}
+                urlType={currentUrlType}
+              />
+            ) : (
+              <div className="compare-search">
+                <form onSubmit={handleCompare} className="compare-form">
+                  <div className="compare-inputs">
+                    <div className="compare-input-pill">
+                      <input
+                        type="text"
+                        placeholder="e.g. facebook/react"
+                        value={compareUrlA}
+                        onChange={(e) => setCompareUrlA(e.target.value)}
+                        disabled={loading}
+                        className="compare-input"
+                      />
+                      {compareUrlA && (
+                        <button
+                          type="button"
+                          onClick={() => setCompareUrlA('')}
+                          disabled={loading}
+                          className="compare-clear-btn"
+                          aria-label="Clear"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    <span className="compare-vs-label">VS</span>
+                    <div className="compare-input-pill">
+                      <input
+                        type="text"
+                        placeholder="e.g. vuejs/core"
+                        value={compareUrlB}
+                        onChange={(e) => setCompareUrlB(e.target.value)}
+                        disabled={loading}
+                        className="compare-input"
+                      />
+                      {compareUrlB && (
+                        <button
+                          type="button"
+                          onClick={() => setCompareUrlB('')}
+                          disabled={loading}
+                          className="compare-clear-btn"
+                          aria-label="Clear"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="compare-form-actions">
+                    <button
+                      type="submit"
+                      disabled={loading || !compareUrlA.trim() || !compareUrlB.trim()}
+                      className="search-btn compare-submit-btn"
+                    >
+                      {loading ? '⏳ Comparing...' : '⚔ Compare'}
+                    </button>
+                    {(compareUrlA || compareUrlB) && (
+                      <button
+                        type="button"
+                        onClick={handleClear}
+                        disabled={loading}
+                        className="compare-clear-all-btn"
+                        aria-label="Clear all"
+                        title="Clear all"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  <div className="compare-examples">
+                    <span className="example-inline-label">Try</span>
+                    <button type="button" className="example-inline-btn" disabled={loading}
+                      onClick={() => { setCompareUrlA('facebook/react'); setCompareUrlB('vuejs/core') }}>
+                      React vs Vue
+                    </button>
+                    <button type="button" className="example-inline-btn" disabled={loading}
+                      onClick={() => { setCompareUrlA('expressjs/express'); setCompareUrlB('fastify/fastify') }}>
+                      Express vs Fastify
+                    </button>
+                    <button type="button" className="example-inline-btn" disabled={loading}
+                      onClick={() => { setCompareUrlA('pallets/flask'); setCompareUrlB('tiangolo/fastapi') }}>
+                      Flask vs FastAPI
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -293,6 +481,13 @@ function RepoAnalyzer() {
 
           {results && resultType === 'issue' && (
             <IssueAnalysisResults
+              results={results}
+              loading={loading}
+            />
+          )}
+
+          {results && resultType === 'compare' && (
+            <CompareResults
               results={results}
               loading={loading}
             />

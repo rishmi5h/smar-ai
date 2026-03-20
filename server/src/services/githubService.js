@@ -42,7 +42,7 @@ export const getRepoMetadata = async (owner, repo) => {
       headers: getHeaders()
     });
 
-    const { description, language, stargazers_count, topics, default_branch } = response.data;
+    const { description, language, stargazers_count, forks_count, open_issues_count, size, created_at, updated_at, license, subscribers_count, topics, default_branch } = response.data;
 
     return {
       name: repo,
@@ -50,6 +50,13 @@ export const getRepoMetadata = async (owner, repo) => {
       description,
       language,
       stars: stargazers_count,
+      forks: forks_count,
+      openIssues: open_issues_count,
+      size,
+      createdAt: created_at,
+      updatedAt: updated_at,
+      license: license?.spdx_id || null,
+      watchers: subscribers_count,
       topics: topics || [],
       defaultBranch: default_branch
     };
@@ -528,6 +535,26 @@ export const getArchitectureSnippets = async (owner, repo, filePaths, branch) =>
   }
 
   return snippets;
+};
+
+// Get contributor count efficiently via Link header pagination
+export const getContributorCount = async (owner, repo) => {
+  try {
+    const response = await axios.get(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/contributors`,
+      { headers: getHeaders(), params: { per_page: 1, anon: true } }
+    );
+
+    const linkHeader = response.headers.link;
+    if (linkHeader) {
+      const lastMatch = linkHeader.match(/page=(\d+)>;\s*rel="last"/);
+      if (lastMatch) return parseInt(lastMatch[1]);
+    }
+
+    return response.data.length;
+  } catch {
+    return null;
+  }
 };
 
 // Get code snapshots at a specific commit

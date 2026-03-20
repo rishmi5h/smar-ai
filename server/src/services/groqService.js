@@ -651,6 +651,60 @@ The prompt should produce a complete, working migration — not just a theoretic
   return createStream(systemPrompt, userPrompt);
 };
 
+// Streaming repo comparison — side-by-side analysis of two repositories
+export const streamRepoComparison = async (metadataA, metadataB, snippetsA, snippetsB, statsA, statsB) => {
+  const formatSnippets = (snippets) =>
+    snippets
+      .slice(0, 8)
+      .map((s) => {
+        const contentStr = typeof s.content === "string" ? s.content : String(s.content);
+        return `## ${s.path}\n\`\`\`\n${contentStr.substring(0, 800)}\n\`\`\``;
+      })
+      .join("\n\n");
+
+  const formatStats = (meta, stats) =>
+    `- Stars: ${meta.stars || 0}\n- Forks: ${stats.forks || 0}\n- Open Issues: ${stats.openIssues || 0}\n- Contributors: ${stats.contributors || 'N/A'}\n- Language: ${meta.language || 'Unknown'}\n- License: ${stats.license || 'N/A'}\n- Topics: ${(meta.topics || []).join(', ') || 'None'}`;
+
+  const prompt = `Compare these two GitHub repositories side by side.
+
+## REPO A: ${metadataA.owner}/${metadataA.name}
+**Description:** ${metadataA.description || 'No description'}
+**Stats:**
+${formatStats(metadataA, statsA)}
+
+**Code Samples:**
+${formatSnippets(snippetsA)}
+
+---
+
+## REPO B: ${metadataB.owner}/${metadataB.name}
+**Description:** ${metadataB.description || 'No description'}
+**Stats:**
+${formatStats(metadataB, statsB)}
+
+**Code Samples:**
+${formatSnippets(snippetsB)}
+
+---
+
+Provide a comprehensive comparison with these sections:
+
+1. **Executive Summary** — 2-3 sentences on what each project does and their key difference
+2. **Tech Stack Comparison** — Languages, frameworks, build tools, and runtime differences
+3. **Architecture Comparison** — How each project is structured, patterns used, complexity
+4. **Community & Health** — Stars, forks, contributors, activity, maintenance signals
+5. **Code Quality Signals** — File organization, documentation, testing presence, conventions
+6. **When to Choose Which** — Concrete scenarios where Repo A is better vs Repo B
+7. **Verdict** — A markdown table summarizing strengths and weaknesses side by side
+
+Be specific, reference actual file names and patterns from the code, and use markdown formatting.`;
+
+  return createStream(
+    `You are smar-ai, an AI-powered code analysis assistant built by rishmi5h. You compare GitHub repositories and help developers make informed choices. Be objective, specific, and back claims with evidence from the code. You are powered by ${providerName}.`,
+    prompt,
+  );
+};
+
 // Streaming security analysis — accepts pre-built prompts from securityPromptBuilder
 export const streamSecurityAnalysis = async (systemPrompt, userPrompt) => {
   return createStream(systemPrompt, userPrompt, 0.3);

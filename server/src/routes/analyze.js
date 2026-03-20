@@ -14,7 +14,8 @@ import {
   getArchitectureCodeFiles,
   getArchitectureSnippets,
   getSecurityScanFiles,
-  getSecurityCodeSnippets
+  getSecurityCodeSnippets,
+  getContributorCount
 } from '../services/githubService.js';
 import {
   generateCodeOverview,
@@ -28,6 +29,7 @@ import {
   streamIssueAnalysis,
   streamReadmeGeneration,
   streamPromptGeneration,
+  streamRepoComparison,
   streamSecurityAnalysis
 } from '../services/groqService.js';
 import {
@@ -661,6 +663,105 @@ analyzeRepoRoute.post('/issue-analyze', async (req, res) => {
     res.end();
   } catch (error) {
     console.error('Issue analysis error:', error);
+    if (!res.headersSent) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+      res.end();
+    }
+  }
+});
+
+// Compare Two Repos endpoint
+analyzeRepoRoute.post('/compare-repos', async (req, res) => {
+  try {
+    const { repoUrlA, repoUrlB } = req.body;
+
+    if (!repoUrlA || !repoUrlB) {
+      return res.status(400).json({ error: 'repoUrlA and repoUrlB are required' });
+    }
+
+    const parsedA = parseGithubUrl(repoUrlA);
+    const parsedB = parseGithubUrl(repoUrlB);
+
+    // Fetch metadata and contributor counts for both repos in parallel
+    const [metadataA, metadataB, contributorsA, contributorsB] = await Promise.all([
+      getRepoMetadata(parsedA.owner, parsedA.repo),
+      getRepoMetadata(parsedB.owner, parsedB.repo),
+      getContributorCount(parsedA.owner, parsedA.repo),
+      getContributorCount(parsedB.owner, parsedB.repo)
+    ]);
+
+    // Fetch relevant files for both repos in parallel
+    const [filesA, filesB] = await Promise.all([
+      getRelevantCodeFiles(parsedA.owner, parsedA.repo),
+      getRelevantCodeFiles(parsedB.owner, parsedB.repo)
+    ]);
+
+    const filePathsA = filesA.files.map(f => f.path);
+    const filePathsB = filesB.files.map(f => f.path);
+
+    // Fetch code snippets for both repos in parallel
+    const [snippetsA, snippetsB] = await Promise.all([
+      getCodeSnippets(parsedA.owner, parsedA.repo, filePathsA),
+      getCodeSnippets(parsedB.owner, parsedB.repo, filePathsB)
+    ]);
+
+    const statsA = { forks: metadataA.forks, openIssues: metadataA.openIssues, contributors: contributorsA, license: metadataA.license };
+    const statsB = { forks: metadataB.forks, openIssues: metadataB.openIssues, contributors: contributorsB, license: metadataB.license };
+
+    // Set up SSE streaming
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // Send metadata for both repos
+    res.write(`data: ${JSON.stringify({
+      type: 'metadata',
+      repoA: {
+        name: metadataA.name,
+        owner: metadataA.owner,
+        description: metadataA.description,
+        language: metadataA.language,
+        stars: metadataA.stars,
+        forks: metadataA.forks,
+        openIssues: metadataA.openIssues,
+        license: metadataA.license,
+        topics: metadataA.topics,
+        contributors: contributorsA,
+        filesAnalyzed: snippetsA.length
+      },
+      repoB: {
+        name: metadataB.name,
+        owner: metadataB.owner,
+        description: metadataB.description,
+        language: metadataB.language,
+        stars: metadataB.stars,
+        forks: metadataB.forks,
+        openIssues: metadataB.openIssues,
+        license: metadataB.license,
+        topics: metadataB.topics,
+        contributors: contributorsB,
+        filesAnalyzed: snippetsB.length
+      }
+    })}\n\n`);
+
+    // Stream AI comparison
+    const stream = await streamRepoComparison(metadataA, metadataB, snippetsA, snippetsB, statsA, statsB);
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        res.write(`data: ${JSON.stringify({
+          type: 'analysis_chunk',
+          text: event.delta.text
+        })}\n\n`);
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error('Compare repos error:', error);
     if (!res.headersSent) {
       res.status(400).json({ error: error.message });
     } else {
