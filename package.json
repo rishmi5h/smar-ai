@@ -13,7 +13,7 @@
     "dev:client": "npm run dev -w client",
     "build:server": "npm run build -w server",
     "build:client": "npm run build -w client",
-    "build": "npm run build:server && npm run build:client"
+    "build": "npm run build:server"
   },
   "workspaces": [
     "server",
