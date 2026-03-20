@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Your code, remembered. AI-powered GitHub repository analyzer.",
   "private": true,
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "install-all": "npm install && cd server && npm install && cd ../client && npm install && cd ..",
     "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
